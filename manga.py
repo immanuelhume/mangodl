@@ -1,16 +1,9 @@
 import requests
-import os
-import sys
-import shutil
 from bs4 import BeautifulSoup as bs
 import lxml
 from typing import Optional, Union, Dict, List, Tuple
-import helpers
-from helpers import api_get, to_string_list, chunk
-
-api_base = 'https://api.mangadex.org/v2/'
-search_url = 'https://mangadex.org/search?tag_mode_exc=any&tag_mode_inc=all&title='
-login_url = 'https://mangadex.org/ajax/actions.ajax.php?function=login&nojs=1'
+from helpers import api_get, chunk
+from constants import api_base
 
 
 class Manga:
@@ -20,14 +13,12 @@ class Manga:
 
     Main attributes:
         title (str)             : Title of manga.
-        volume_count (str/None) : Total number of volumes.
-                                  None if info doesn't exist.
-        chapter_count (str/None): Total number of chapters.
-                                  None if info doesn't exist.
-        self.eng_chapters (list): List of english chapters. Each
-                                  chapter is a dict.
-        self.chap_to_vol (dict) : Dict mapping chapter number (float) to
+        eng_chapters (list)     : List of english chapters. Each chapter is 
+                                  a dict.
+        chap_to_vol (dict)      : Dict mapping chapter number (float) to
                                   volume number (int).
+        volumes (list)          : List of all volume numbers.
+
     """
 
     def __init__(self, id: Union[str, int]):
@@ -41,7 +32,7 @@ class Manga:
         self.volume_count = data['lastVolume']
         self.chapter_count = data['lastChapter']
         self.eng_chapters = self.__get_eng_chapters()
-        self.chap_to_vol = self.__compile_volume_info()
+        self.chap_to_vol, self.volumes = self.__compile_volume_info()
 
     def __get_eng_chapters(self) -> list:
         """Returns list of dictionaries. Each dictionary contains
@@ -67,14 +58,14 @@ class Manga:
         """Attempts to assign a volume number to each chapter. Returns
         a dict mapping chapter number to volume number.
 
-        Not every chapter comes with volume info. The function will read and 
+        Not every chapter comes with volume info. The function will read and
         use whatever info is available first. This leaves the chapters with
         no volume info.
 
-        For these chapters, we 1) slot them into existing volumes if they fit 
+        For these chapters, we 1) slot them into existing volumes if they fit
         or 2) create new volumes for them.
 
-        If not a single chapter has volume info, default to 10 chapters per 
+        If not a single chapter has volume info, default to 10 chapters per
         volume.
         """
 
@@ -164,97 +155,11 @@ class Manga:
                 for chap in new_volume:
                     chap_to_vol.update({chap: new_volume_num})
 
-        return chap_to_vol
-
-
-class Chapter:
-    """Chapter objects represent one chapter of the manga.
-
-    Main attributes:
-        hash (str)          : Hash for this chapter.
-        chapter_num (str)   : Number of this chapter.
-        page_links (list)   : List of links to image src of each page.
-
-    Instance methods:
-        download(raw_path): Downloads chapter into folder raw_path.
-
-    """
-
-    def __init__(self, id: Union[str, int]):
-        self.url = api_base + f'chapter/{id}'
-        self.data = api_get(self.url)
-        data = self.data
-        self.hash = data['hash']
-        self.chapter_num = data['chapter']
-        self.chapter_title = data['title']
-        self.page_links = self.__get_page_links()
-
-    def __get_page_links(self) -> list:
-        server_base = self.data['server'] + f'{self.hash}/'
-        return [server_base + page for page in self.data['pages']]
-
-    def download(self, raw_path: str):
-        chapter_path = os.path.join(raw_path, f'Chapter {self.chapter_num}')
-        try:
-            os.mkdir(chapter_path)
-        except FileExistsError:
-            pass
-        for link in self.page_links:
-            page_path = os.path.join(chapter_path, link.split('/')[-1])
-            resp = requests.get(link, stream=True)
-            with open(page_path, 'wb') as out_file:
-                shutil.copyfileobj(resp.raw, out_file)
-
-
-class Search:
-    def __init__(self, username, password, login_url, search_url):
-        self.login_url = login_url
-        self.search_url = search_url
-        self.username = username
-        self.password = password
-        self.__login()
-
-    def __login(self):
-        self.session = requests.Session()
-        payload = {'login_username': self.username,
-                   'login_password': self.password,
-                   'remember_me': 1
-                   }
-        p = self.session.post(self.login_url, data=payload)
-        # check if login succeeded
-        soup = bs(p.text, 'lxml')
-        if soup.title.string != 'Home - MangaDex':
-            print('Login failed :(')
-            print('Please check your username and password.')
-            sys.exit()
-        else:
-            print('Login successful!')
-
-    def get_manga_id(self, manga_title):
-        resp = self.session.get(self.search_url + manga_title)
-        soup = bs(resp.text, 'lxml')
-        # get first result
-        manga_entries = soup.find_all('div', class_='manga-entry')
-        if manga_entries:
-            for manga_entry in manga_entries:
-                manga_title = manga_entry.find(
-                    'a', class_='manga_title').string
-                print(f'{manga_entries.index(manga_entry)}: {manga_title}')
-            print('These are the results obtained.')
-            index = int(
-                input('Enter the index of the manga you want to download: '))
-            link = manga_entries[index].find(
-                'a', class_='manga_title').attrs['href']
-            id = link.split('/')[2]
-            return id
-        else:
-            return None
+        return chap_to_vol, volume_numbers
 
 
 if __name__ == '__main__':
     manga_id = 26610
     chapter_id = 20220
     manga = Manga(manga_id)
-    print(manga.compile_volume_info())
-    # search = Search('immanuelhume', 'XnQAtrRmsW3ddF', login_url, search_url)
-    # print(search.get_manga_id('spice and wolf'))
+    print(manga.chap_to_vol)
