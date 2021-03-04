@@ -1,6 +1,7 @@
 import requests
 from requests.exceptions import RequestException
 import time
+from typing import List
 
 
 class DictX(dict):
@@ -35,3 +36,20 @@ def api_get(url) -> dict:
                 return resp.json()['data']
         except RequestException:
             print(f'Unable to reach {url} D:')
+
+
+def to_string_list(l: List[float]) -> List[str]:
+    return [str(int(j)) if int(j) == j else str(j) for j in l]
+
+
+def chunk(lst: List, n: int) -> List:
+    chunked = []
+    q = len(lst) // n
+    for i in range(q - 1):
+        chunked.append(lst[i * n:i * n + n])
+    chunked.append(lst[(q - 1) * n:])
+    return chunked
+
+
+if __name__ == '__main__':
+    print(chunk([1, 2, 3, 4, 5], 3))
