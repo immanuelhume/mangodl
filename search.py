@@ -14,9 +14,10 @@ class Search:
     Main attributes:
         username: Username to mangadex.
         password: Password for username.
+        session : Current logged-in session.
 
     Instance methods:
-        get_manga_id(manga_title): Returns manga id for manga_title.
+        get_manga_id: Returns manga id for manga_title.
     """
 
     def __init__(self, username, password, login_url, search_url):
@@ -26,7 +27,9 @@ class Search:
         self.password = password
         self.__login()
 
-    def __login(self):
+    def __login(self) -> None:
+        """Tries logging into mangadex. If the login failed, calls
+        sys.exit()"""
         self.session = requests.Session()
         payload = {'login_username': self.username,
                    'login_password': self.password,
@@ -36,11 +39,11 @@ class Search:
         # check if login succeeded
         soup = bs(p.text, 'lxml')
         if soup.title.string != 'Home - MangaDex':
-            print('Login failed :(')
+            print('Login failed (╥﹏╥)')
             print('Please check your username and password.')
             sys.exit()
         else:
-            print('Login successful!')
+            print('Login successful (ᵔᴥᵔ)')
 
     def get_manga_id(self, manga_title: str) -> Optional[str]:
         """Searches mangadex for manga_title. Returns None if not found.
@@ -63,4 +66,5 @@ class Search:
             id = link.split('/')[2]
             return id
         else:
-            return None
+            print(f'Could not find {manga_title} (╯°□°）╯︵ ┻━┻')
+            sys.exit()

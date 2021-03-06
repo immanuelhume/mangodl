@@ -9,7 +9,7 @@ from constants import api_base
 class Manga:
     """Manga objects.
 
-    Initialize with manga id.
+    Initialize with manga id and mangadex's api base url.
 
     Main attributes:
         title (str)             : Title of manga.
@@ -17,11 +17,13 @@ class Manga:
                                   a dict.
         chap_to_vol (dict)      : Dict mapping chapter number (float) to
                                   volume number (int).
-        volumes (list)          : List of all volume numbers.
+        volumes (list)          : List of all volume numbers (int).
 
+    Instance methods:
+        get_ids: Returns list of ids for english chapters founds.
     """
 
-    def __init__(self, id: Union[str, int]):
+    def __init__(self, id: Union[str, int], api_base: str):
         self.url = api_base + f'manga/{id}'
         self.data = api_get(self.url)
         self.chapters_data = api_get(self.url + '/chapters')['chapters']
@@ -34,7 +36,7 @@ class Manga:
         self.eng_chapters = self.__get_eng_chapters()
         self.chap_to_vol, self.volumes = self.__compile_volume_info()
 
-    def __get_eng_chapters(self) -> list:
+    def __get_eng_chapters(self) -> List[Dict]:
         """Returns list of dictionaries. Each dictionary contains
         info for one chapter.
 
@@ -52,7 +54,13 @@ class Manga:
                 chapters_added.append(chapter_number)
         del chapters_added
 
+        print(f'Found {len(eng_chapters)} chapters for {self.title}.')
+
         return eng_chapters
+
+    def get_ids(self) -> List[str]:
+        chapters = self.eng_chapters
+        return [chapter['id'] for chapter in chapters]
 
     def __compile_volume_info(self) -> Dict[float, int]:
         """Attempts to assign a volume number to each chapter. Returns
@@ -161,5 +169,3 @@ class Manga:
 if __name__ == '__main__':
     manga_id = 26610
     chapter_id = 20220
-    manga = Manga(manga_id)
-    print(manga.chap_to_vol)
