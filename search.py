@@ -20,7 +20,12 @@ class Search:
         get_manga_id: Returns manga id for manga_title.
     """
 
-    def __init__(self, username, password, login_url, search_url):
+    def __init__(self,
+                 username: str,
+                 password: str,
+                 login_url=login_url,
+                 search_url=search_url):
+
         self.login_url = login_url
         self.search_url = search_url
         self.username = username
@@ -43,12 +48,14 @@ class Search:
             print('Please check your username and password.')
             sys.exit()
         else:
-            print('Login successful (ᵔᴥᵔ)')
+            print(f'Logged in as {self.username} ♪~ ᕕ(ᐛ)ᕗ')
 
     def get_manga_id(self, manga_title: str) -> Optional[str]:
-        """Searches mangadex for manga_title. Returns None if not found.
+        """Searches mangadex for `manga_title`. Calls sys.exit() 
+        if not found. If `manga_title` is found, will print out all 
+        search results and prompt user for a choice.
 
-        Will print out all search results and prompt user for a choice.
+        Returns id for manga selected.
         """
         resp = self.session.get(self.search_url + manga_title)
         soup = bs(resp.text, 'lxml')

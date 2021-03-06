@@ -28,16 +28,21 @@ class DictX(dict):
         return '<DictX ' + dict.__repr__(self) + '>'
 
 
-def api_get(url: str) -> Dict:
-    """Expects a JSON response from `url`. Returns the data section."""
+def api_get(url: str, session=False) -> Dict:
+    """Expects a JSON response from `url`. Returns the data section
+    as dict."""
     while True:
         try:
-            resp = requests.get(url)
-            if resp.status_code != 200:
+            if session:
+                resp = session.get(url)
+            else:
+                resp = requests.get(url)
+
+            if resp.ok:
+                return resp.json()['data']
+            else:
                 time.sleep(0.5)
                 continue
-            else:
-                return resp.json()['data']
         except RequestException:
             print(f'༼ つ ಥ_ಥ ༽つ Unable to reach {url}...')
             sys.exit()
