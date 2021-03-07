@@ -3,10 +3,11 @@ import shutil
 import requests
 import asyncio
 import aiohttp
+import aiofiles
 from typing import Optional, Union, Dict, List, Tuple, Iterator
 
 from helpers import api_get, safe_mkdir
-from constants import api_base
+from constants import API_BASE
 
 
 class Chapter:
@@ -23,7 +24,7 @@ class Chapter:
         download: Downloads chapter into folder raw_path.
     """
 
-    def __init__(self, id: Union[str, int], api_base=api_base):
+    def __init__(self, id: Union[str, int], api_base=API_BASE):
         self.url = api_base + f'chapter/{id}'
         self.data = api_get(self.url)
         data = self.data
@@ -53,33 +54,33 @@ class Chapter:
         all images into the new folder."""
         chapter_path = os.path.join(raw_path, self.chapter_num)
         safe_mkdir(chapter_path)
+        '''
+        async def get_page(session: aiohttp.ClientSession, url: str):
+            resp = await session.get(url)
+            raw_resp = await resp.raw
+            return raw_resp
 
-        async def download_page(session: aiohttp.ClientSession,
-                                url: str,
-                                page_path: str) -> None:
-            async with session.get(url) as resp:
-                with open(page_path, 'wb') as out_file:
-                    shutil.copyfileobj(resp.raw, out_file)
+        async def save_image(session: aiohttp.ClientSession, url: str, page_path: str):
+            raw_resp = await get_page(session, url)
+            async with aiofiles.open(page_path, 'wb') as out_file:
+                await out_file.write(raw_resp)
 
-        async def download_all_pages(page_links):
+        async def download_all(page_links):
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for link in page_links:
                     page_path = os.path.join(chapter_path, link.split('/')[-1])
-                    task = asyncio.ensure_future(
-                        download_page(session, link, page_path))
-                    tasks.append(task)
-                await asyncio.gather(*tasks, return_exceptions=True)
+                    tasks.append(save_image(session, link, page_path))
+                await asyncio.gather(*tasks)
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(download_all_pages(self.page_links))
-
+        asyncio.run(download_all(self.page_links))
         '''
+
         session = requests.Session()
         for link in self.page_links:
             page_path = os.path.join(chapter_path, link.split('/')[-1])
             resp = session.get(link, stream=True)
             with open(page_path, 'wb') as out_file:
                 shutil.copyfileobj(resp.raw, out_file)
-        '''
+
         print(f'Chapter {self.chapter_num} downloaded (~˘▾˘)~')

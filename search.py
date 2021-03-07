@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup as bs
 import lxml
 from typing import Optional
 import sys
-from constants import login_url, search_url
+from constants import LOGIN_URL, SEARCH_URL
 
 
 class Search:
@@ -23,8 +23,8 @@ class Search:
     def __init__(self,
                  username: str,
                  password: str,
-                 login_url=login_url,
-                 search_url=search_url):
+                 login_url=LOGIN_URL,
+                 search_url=SEARCH_URL):
 
         self.login_url = login_url
         self.search_url = search_url

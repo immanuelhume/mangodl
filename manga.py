@@ -2,7 +2,7 @@ import requests
 from typing import Optional, Union, Dict, List, Tuple, Iterator
 
 from helpers import api_get, chunk
-from constants import api_base
+from constants import API_BASE
 from chapter import Chapter
 
 
@@ -21,7 +21,7 @@ class Manga:
         compile_volume_info : Checks and assigns volume numbers to all chapters.
     """
 
-    def __init__(self, id: Union[str, int], api_base=api_base):
+    def __init__(self, id: Union[str, int], api_base=API_BASE):
         self.url = api_base + f'manga/{id}'
         self.data = api_get(self.url)
 
