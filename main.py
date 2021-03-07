@@ -11,7 +11,6 @@ import time
 
 
 if __name__ == '__main__':
-    start_time = time.time()
 
     username = 'immanuelhume'
     password = 'XnQAtrRmsW3ddF'
@@ -21,12 +20,13 @@ if __name__ == '__main__':
     manga_id = search.get_manga_id(manga_name)
 
     manga = Manga(manga_id)
-    fs = Fs('/mnt/d/media/manga', manga.title)
+    fs = Fs('/mnt/d/tmp', manga.title)
+
+    start_time = time.time()
 
     chapter_mappings = manga.download_chapters(fs.raw_path)
 
-    fs.create_volumes(chapter_mappings)
-
     duration = time.time() - start_time
-
     print(f'Took {round(duration / 60)} minutes.')
+
+    fs.create_volumes(chapter_mappings)

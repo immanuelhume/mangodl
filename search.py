@@ -41,14 +41,18 @@ class Search:
                    'remember_me': 1
                    }
         p = self.session.post(self.login_url, data=payload)
-        # check if login succeeded
-        soup = bs(p.text, 'lxml')
-        if soup.title.string != 'Home - MangaDex':
-            print('Login failed (╥﹏╥)')
-            print('Please check your username and password.')
-            sys.exit()
+        if p.ok:
+            # check if login succeeded
+            soup = bs(p.text, 'lxml')
+            if soup.title.string != 'Home - MangaDex':
+                print('Login failed (╥﹏╥)')
+                print('Please check your username and password.')
+                sys.exit()
+            else:
+                print(f'Logged in as {self.username} ♪~ ᕕ(ᐛ)ᕗ')
         else:
-            print(f'Logged in as {self.username} ♪~ ᕕ(ᐛ)ᕗ')
+            print('Unable to reach mangadex (╥﹏╥)')
+            sys.exit()
 
     def get_manga_id(self, manga_title: str) -> Optional[str]:
         """Searches mangadex for `manga_title`. Calls sys.exit() 
