@@ -54,7 +54,7 @@ class Chapter:
         all images into the new folder."""
         chapter_path = os.path.join(raw_path, self.chapter_num)
         safe_mkdir(chapter_path)
-        '''
+
         async def get_page(session: aiohttp.ClientSession, url: str):
             resp = await session.get(url)
             raw_resp = await resp.raw
@@ -74,13 +74,5 @@ class Chapter:
                 await asyncio.gather(*tasks)
 
         asyncio.run(download_all(self.page_links))
-        '''
-
-        session = requests.Session()
-        for link in self.page_links:
-            page_path = os.path.join(chapter_path, link.split('/')[-1])
-            resp = session.get(link, stream=True)
-            with open(page_path, 'wb') as out_file:
-                shutil.copyfileobj(resp.raw, out_file)
 
         print(f'Chapter {self.chapter_num} downloaded (~˘▾˘)~')
