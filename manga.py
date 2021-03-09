@@ -1,7 +1,9 @@
 import requests
-from typing import Optional, Union, Dict, List, Tuple, Iterator
+from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+import asyncio
+import aiohttp
 
-from helpers import api_get, chunk
+from helpers import get_json, chunk, RateLimitedSession
 from constants import API_BASE
 from chapter import Chapter
 
@@ -23,9 +25,9 @@ class Manga:
 
     def __init__(self, id: Union[str, int], api_base=API_BASE):
         self.url = api_base + f'manga/{id}'
-        self.data = api_get(self.url)
+        self.data = get_json(self.url)
 
-        self.chapters_data = api_get(self.url + '/chapters')['chapters']
+        self.chapters_data = get_json(self.url + '/chapters')['chapters']
         self.chapters_data.reverse()
 
         self.title = self.data['title']
@@ -45,22 +47,52 @@ class Manga:
         def __is_english(chapter: Dict) -> bool:
             return chapter['language'] == 'gb'
 
-        # this function checks if another version of the same chapter
-        # has already been downloaded
         def __is_new(chapter: Dict, lst) -> bool:
             return chapter['chapter'] not in lst
 
         done = []
+        to_download: List[Chapter] = []
         downloaded_chapters: List[Chapter] = []
+
+        # stage valid chapters for download
         for raw_chapter in self.chapters_data:
             if __is_english(raw_chapter) and __is_new(raw_chapter, done):
                 chapter = Chapter(raw_chapter['id'])
-                if chapter.get_page_links():
-                    chapter.download(raw_path)
+                to_download.append(chapter)
+                done.append(raw_chapter['chapter'])
+
+                # if chapter.get_page_links():
+                # chapter.download(raw_path)
+                # downloaded_chapters.append(chapter)
+                # to_download.append(chapter)
+                # done.append(raw_chapter['chapter'])
+                # else:
+                # continue
+
+        async def check_server_and_download(session, chapter: Chapter) -> Awaitable:
+            await chapter.load(session)
+            if chapter.page_links:
+                await chapter.download(session, raw_path)
+
+        async def main_download(to_download: List[Chapter]) -> Awaitable:
+            downloads = []
+            async with aiohttp.ClientSession() as session:
+                session = RateLimitedSession(session, 30, 30)
+                for chapter in to_download:
+                    downloads.append(
+                        check_server_and_download(session, chapter))
                     downloaded_chapters.append(chapter)
-                    done.append(raw_chapter['chapter'])
-                else:
-                    continue
+                await asyncio.gather(*downloads)
+
+        # async def main_download():
+        #     downloads = []
+        #     async with aiohttp.ClientSession() as session:
+        #         session = RateLimitedSession(session)
+        #         for chapter in to_download:
+        #             downloads.append(chapter.download(session, raw_path))
+        #     await asyncio.gather(*downloads)
+
+        asyncio.run(main_download(to_download))
 
         return self.compile_volume_info(downloaded_chapters)
 

@@ -62,6 +62,9 @@ class Search:
         Returns id for manga selected.
         """
         resp = self.session.get(self.search_url + manga_title)
+        if not resp.ok:
+            print(f'Got error code {resp.status_code} (╯°□°）╯︵ ┻━┻')
+            sys.exit()
         soup = bs(resp.text, 'lxml')
         manga_entries = soup.find_all('div', class_='manga-entry')
         if manga_entries:

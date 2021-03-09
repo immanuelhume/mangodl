@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     username = 'immanuelhume'
     password = 'XnQAtrRmsW3ddF'
-    manga_name = 'tokyo ghoul'
+    manga_name = 'solanin'
 
     search = Search(username, password)
     manga_id = search.get_manga_id(manga_name)
@@ -27,6 +27,6 @@ if __name__ == '__main__':
     chapter_mappings = manga.download_chapters(fs.raw_path)
 
     duration = time.time() - start_time
-    print(f'Took {round(duration / 60)} minutes.')
+    print(f'Took {duration / 60:.2f} minutes.')
 
     fs.create_volumes(chapter_mappings)
