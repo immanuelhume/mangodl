@@ -2,7 +2,7 @@ import os
 import shutil
 from helpers import safe_mkdir
 from distutils.dir_util import copy_tree
-from typing import Optional, Union, Dict, List, Tuple, Iterator
+from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 
 
 class Fs:

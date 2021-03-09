@@ -1,13 +1,13 @@
 import requests
 from bs4 import BeautifulSoup as bs
 import lxml
-from typing import Optional
 import sys
+from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from constants import LOGIN_URL, SEARCH_URL
 
 
 class Search:
-    """Search objects are used to log into mangadex and search
+    """Search objects are used to login to mangadex and search
     for the id for a manga. Tries to log into mangadex when instantiated. 
     If login fails, program stops.
 
@@ -20,14 +20,8 @@ class Search:
         get_manga_id: Returns manga id for manga_title.
     """
 
-    def __init__(self,
-                 username: str,
-                 password: str,
-                 login_url=LOGIN_URL,
-                 search_url=SEARCH_URL):
+    def __init__(self, username: str, password: str):
 
-        self.login_url = login_url
-        self.search_url = search_url
         self.username = username
         self.password = password
         self.__login()
@@ -40,7 +34,7 @@ class Search:
                    'login_password': self.password,
                    'remember_me': 1
                    }
-        p = self.session.post(self.login_url, data=payload)
+        p = self.session.post(LOGIN_URL, data=payload, timeout=20)
         if p.ok:
             # check if login succeeded
             soup = bs(p.text, 'lxml')
@@ -51,7 +45,8 @@ class Search:
             else:
                 print(f'Logged in as {self.username} ♪~ ᕕ(ᐛ)ᕗ')
         else:
-            print('Unable to reach mangadex (╥﹏╥)')
+            print(
+                f'Unable to reach mangadex (╥﹏╥)...got {p.status_code} error.')
             sys.exit()
 
     def get_manga_id(self, manga_title: str) -> Optional[str]:
@@ -61,7 +56,7 @@ class Search:
 
         Returns id for manga selected.
         """
-        resp = self.session.get(self.search_url + manga_title)
+        resp = self.session.get(SEARCH_URL + manga_title, timeout=20)
         if not resp.ok:
             print(f'Got error code {resp.status_code} (╯°□°）╯︵ ┻━┻')
             sys.exit()

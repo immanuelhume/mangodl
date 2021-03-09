@@ -1,7 +1,7 @@
 import requests
-from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 import asyncio
 import aiohttp
+from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 
 from helpers import get_json, chunk, RateLimitedSession
 from constants import API_BASE
@@ -19,7 +19,7 @@ class Manga:
         chapters_data (list): List containing raw chapter dictionaries.
 
     Methods:
-        download_chapters   : Downloads chapters for the manga.
+        download_chapters   : Downloads chapters asynchronously for the manga.
         compile_volume_info : Checks and assigns volume numbers to all chapters.
     """
 
@@ -33,7 +33,7 @@ class Manga:
         self.title = self.data['title']
 
     def download_chapters(self, raw_path: str) -> Dict[float, int]:
-        """Downloads chapters into `raw_path`.
+        """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
 
         For now, it only downloads english chapters.
 
@@ -42,6 +42,7 @@ class Manga:
 
         Returns:
             Dict mapping chapter numbers (float) to their respective volumes (int).
+            This is from calling `compile_volume_info`.
 
         """
         def __is_english(chapter: Dict) -> bool:
@@ -50,24 +51,17 @@ class Manga:
         def __is_new(chapter: Dict, lst) -> bool:
             return chapter['chapter'] not in lst
 
-        done = []
+        added = []
         to_download: List[Chapter] = []
         downloaded_chapters: List[Chapter] = []
 
-        # stage valid chapters for download
+        # BUG DOES NOT ACCOUNT FOR BAD SERVERS HERE
+        # stage chapters for download
         for raw_chapter in self.chapters_data:
-            if __is_english(raw_chapter) and __is_new(raw_chapter, done):
+            if __is_english(raw_chapter) and __is_new(raw_chapter, added):
                 chapter = Chapter(raw_chapter['id'])
                 to_download.append(chapter)
-                done.append(raw_chapter['chapter'])
-
-                # if chapter.get_page_links():
-                # chapter.download(raw_path)
-                # downloaded_chapters.append(chapter)
-                # to_download.append(chapter)
-                # done.append(raw_chapter['chapter'])
-                # else:
-                # continue
+                added.append(raw_chapter['chapter'])
 
         async def check_server_and_download(session, chapter: Chapter) -> Awaitable:
             await chapter.load(session)
@@ -83,14 +77,6 @@ class Manga:
                         check_server_and_download(session, chapter))
                     downloaded_chapters.append(chapter)
                 await asyncio.gather(*downloads)
-
-        # async def main_download():
-        #     downloads = []
-        #     async with aiohttp.ClientSession() as session:
-        #         session = RateLimitedSession(session)
-        #         for chapter in to_download:
-        #             downloads.append(chapter.download(session, raw_path))
-        #     await asyncio.gather(*downloads)
 
         asyncio.run(main_download(to_download))
 
