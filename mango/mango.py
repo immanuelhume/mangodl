@@ -1,16 +1,18 @@
-# TODO progress bar?
-# TODO multi threading?
 # TODO how the fuck do i package and interface?
+# TODO CHECK FOR MISSING CHAPTERS!!!
+# TODO handle connection and server erros !!!
 
-from chapter import Chapter
-from manga import Manga
-from search import Search
-from fs import Fs
+
+from .chapter import Chapter
+from .manga import Manga
+from .search import Search
+from .fs import Fs
 import os
 import time
 import argparse
-import configparser
-from os import PathLike
+from pathlib import Path
+
+__version__ = "0.1.0"
 
 # argparser = argparse.ArgumentParser()
 # argparser.add_argument('manga', action='store',
@@ -26,8 +28,7 @@ from os import PathLike
 #                     help='Use low quality images.')
 
 
-if __name__ == '__main__':
-
+def main():
     manga_name = 'kaguya sama'
 
     search = Search()
@@ -44,3 +45,7 @@ if __name__ == '__main__':
     print(f'Took {duration / 60:.2f} minutes.')
 
     fs.create_volumes(chapter_mappings)
+
+
+if __name__ == '__main__':
+    main()

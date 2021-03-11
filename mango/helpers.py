@@ -7,7 +7,7 @@ import time
 import asyncio
 from aiohttp import ClientSession
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from os import PathLike
+from pathlib import Path
 
 
 def get_json(url: str, time_out: int = 30, max_tries: int = 10, session=False) -> Dict:
@@ -66,7 +66,7 @@ def chunk(lst: List, n: int) -> List:
     return chunked
 
 
-def safe_mkdir(p: PathLike) -> None:
+def safe_mkdir(p: Path) -> None:
     try:
         os.mkdir(p)
     except FileExistsError:

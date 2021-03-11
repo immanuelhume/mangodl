@@ -1,15 +1,12 @@
-# TODO CHECK FOR MISSING CHAPTERS!!!
-# TODO handle connection and server erros !!!
-
 import requests
 import asyncio
 import aiohttp
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from os import PathLike
+from pathlib import Path
 
-from helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore
-from chapter import Chapter
-from config import mango_config
+from .helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore
+from .chapter import Chapter
+from .config import mango_config
 
 # load config
 config = mango_config.read_config()
@@ -40,7 +37,7 @@ class Manga:
 
         self.title = self.data['title']
 
-    def download_chapters(self, raw_path: PathLike) -> Dict[float, int]:
+    def download_chapters(self, raw_path: Path) -> Dict[float, int]:
         """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
 
         For now, it only downloads english chapters.

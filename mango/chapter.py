@@ -3,11 +3,11 @@ import asyncio
 import aiohttp
 import aiofiles
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from os import PathLike
+from pathlib import Path
 import tqdm
 
-from helpers import safe_mkdir, RateLimitedSession
-from config import mango_config
+from .helpers import safe_mkdir, RateLimitedSession
+from .config import mango_config
 
 # load config
 config = mango_config.read_config()
@@ -65,7 +65,7 @@ class Chapter:
             # f'No data server for id {self.id} (chapter {self.chapter_num}) ლ(ಠ益ಠლ)')
             self.page_links = False
 
-    async def download(self, session, raw_path: PathLike) -> Awaitable:
+    async def download(self, session, raw_path: Path) -> Awaitable:
         """Creates a folder for this chapter inside `raw_path` and saves
         all images into the new folder."""
 
@@ -74,7 +74,7 @@ class Chapter:
 
         async def download_one(session: RateLimitedSession,
                                url: str,
-                               page_path: PathLike) -> Awaitable:
+                               page_path: Path) -> Awaitable:
             async with await session.get(url) as resp:
                 data = await resp.read()
                 async with aiofiles.open(page_path, 'wb') as out_file:

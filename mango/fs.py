@@ -1,13 +1,13 @@
 import os
 import shutil
-from helpers import safe_mkdir
+from .helpers import safe_mkdir
 from distutils.dir_util import copy_tree
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from os import PathLike
-from config import mango_config
+from pathlib import Path
+from .config import mango_config
 
 config = mango_config.read_config()
-ROOT_DIR: PathLike = config['settings']['root_dir']
+ROOT_DIR: Path = config['settings']['root_dir']
 
 
 class Fs:
@@ -36,7 +36,7 @@ class Fs:
         safe_mkdir(self.raw_path)
 
     @staticmethod
-    def to_cbz(dir_to_zip: PathLike, destination: PathLike) -> None:
+    def to_cbz(dir_to_zip: Path, destination: Path) -> None:
         """Creates .cbz file for folder `dir_to_zip`.
 
         Arguments:
