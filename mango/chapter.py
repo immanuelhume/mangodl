@@ -6,8 +6,8 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from os import PathLike
 import tqdm
 
-from helpers import safe_mkdir, RateLimitedSession
-import mango_config
+from .helpers import safe_mkdir, RateLimitedSession
+from .config import mango_config
 
 # load config
 config = mango_config.read_config()

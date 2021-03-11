@@ -7,9 +7,9 @@ import aiohttp
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from os import PathLike
 
-from helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore
-from chapter import Chapter
-import mango_config
+from .helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore
+from .chapter import Chapter
+from .config import mango_config
 
 # load config
 config = mango_config.read_config()
