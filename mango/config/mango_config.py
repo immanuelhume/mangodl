@@ -1,6 +1,8 @@
 import configparser
+import os
 
-CONFIG_FILE = 'mango.ini'
+CONFIG_FILE = os.path.join(os.path.dirname(
+    os.path.dirname(__file__)), 'config', 'mango.ini')
 config = configparser.ConfigParser()
 
 
@@ -22,4 +24,5 @@ def update_password(new_password: str):
 
 
 if __name__ == '__main__':
-    pass
+    read_config()
+    print(config.sections())

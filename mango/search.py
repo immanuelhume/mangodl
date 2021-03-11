@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup as bs
 import lxml
 import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from .config import mango_config
+from config import mango_config
 
 # set up config variables
 config = mango_config.read_config()

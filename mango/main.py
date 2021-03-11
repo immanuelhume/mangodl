@@ -2,10 +2,10 @@
 # TODO multi threading?
 # TODO how the fuck do i package and interface?
 
-from .chapter import Chapter
-from .manga import Manga
-from .search import Search
-from .fs import Fs
+from chapter import Chapter
+from manga import Manga
+from search import Search
+from fs import Fs
 import os
 import time
 import argparse

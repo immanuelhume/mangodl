@@ -1,10 +1,10 @@
 import os
 import shutil
-from .helpers import safe_mkdir
+from helpers import safe_mkdir
 from distutils.dir_util import copy_tree
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from os import PathLike
-from .config import mango_config
+from config import mango_config
 
 config = mango_config.read_config()
 ROOT_DIR: PathLike = config['settings']['root_dir']
