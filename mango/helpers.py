@@ -2,36 +2,27 @@ import os
 import sys
 import requests
 from requests.exceptions import RequestException
+from itertools import zip_longest
 import time
 import asyncio
+from aiohttp import ClientSession
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+from os import PathLike
 
 
-class DictX(dict):
-    """Helper class which provides dictionaries with dot notation."""
+def get_json(url: str, time_out: int = 30, max_tries: int = 10, session=False) -> Dict:
+    """Sends get request to page. Expects a json response.
 
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError as k:
-            raise AttributeError(k)
+    Arguments:
+        url (str)       : Url to get.
+        time_out (int)  : How long to wait for response before giving up.
+        max_tries (int) : How many times to try getting page if bad response.
+        session         : A session instance. Can be requests.Session 
+                          or aiohttp.ClientSession.
 
-    def __setattr__(self, key, value):
-        self[key] = value
-
-    def __delattr__(self, key):
-        try:
-            del self[key]
-        except KeyError as k:
-            raise AttributeError(k)
-
-    def __repr__(self):
-        return '<DictX ' + dict.__repr__(self) + '>'
-
-
-def get_json(url: str, session=False, time_out=20, MAX_TRIES: int = 10) -> Dict:
-    """Expects a JSON response from `url`. Returns the data section
-    as dict."""
+    Returns:
+        A dictionary of the data portion of JSON response.
+    """
     tries = 1
     while True:
         try:
@@ -42,8 +33,9 @@ def get_json(url: str, session=False, time_out=20, MAX_TRIES: int = 10) -> Dict:
 
             if resp.ok:
                 return resp.json()['data']
-            elif tries == MAX_TRIES:
-                print('༼ つ ಥ_ಥ ༽つ Got HTTP {resp.status_code} error...')
+            elif tries == max_tries:
+                print(
+                    f'༼ つ ಥ_ಥ ༽つ {url} returned HTTP {resp.status_code} error...')
                 sys.exit()
             else:
                 time.sleep(0.5)
@@ -51,7 +43,10 @@ def get_json(url: str, session=False, time_out=20, MAX_TRIES: int = 10) -> Dict:
                 continue
         except RequestException:
             print(
-                f'༼ つ ಥ_ಥ ༽つ Unable to reach {url}...please try again later.')
+                f'༼ つ ಥ_ಥ ༽つ Unable to reach {url} ...please try again later.')
+            sys.exit()
+        except ValueError:
+            print('༼ つ ಥ_ಥ ༽つ Got an invalid response...please try again later.')
             sys.exit()
 
 
@@ -71,7 +66,7 @@ def chunk(lst: List, n: int) -> List:
     return chunked
 
 
-def safe_mkdir(p: str) -> None:
+def safe_mkdir(p: PathLike) -> None:
     try:
         os.mkdir(p)
     except FileExistsError:
@@ -83,12 +78,12 @@ class RateLimitedSession():
     a limiter of `rate` HTTP calls per second.
     """
 
-    def __init__(self, session, rate: int = 10, max_tokens: int = 10):
+    def __init__(self, session: ClientSession, rate: int = 20, max_tokens: int = 20):
         self.session = session
-        self.RATE = rate
-        self.MAX_TOKENS = max_tokens
+        self.rate = rate
+        self.max_tokens = max_tokens
 
-        self.tokens = self.MAX_TOKENS
+        self.tokens = self.max_tokens
         self.updated_at = time.monotonic()
 
     async def get(self, *args, **kwargs):
@@ -104,10 +99,20 @@ class RateLimitedSession():
     def add_new_tokens(self):
         now = time.monotonic()
         time_since_update = now - self.updated_at
-        new_tokens = time_since_update * self.RATE
+        new_tokens = time_since_update * self.rate
         if self.tokens + new_tokens >= 1:
-            self.tokens = min(self.tokens + new_tokens, self.MAX_TOKENS)
+            self.tokens = min(self.tokens + new_tokens, self.max_tokens)
             self.updated_at = now
+
+
+async def gather_with_semaphore(n, *tasks):
+    semaphore = asyncio.Semaphore(n)
+
+    async def sem_task(task):
+        async with semaphore:
+            return await task
+
+    return await asyncio.gather(*(sem_task(task) for task in tasks))
 
 
 if __name__ == '__main__':

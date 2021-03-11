@@ -3,7 +3,14 @@ from bs4 import BeautifulSoup as bs
 import lxml
 import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from constants import LOGIN_URL, SEARCH_URL
+import mango_config
+
+# set up config variables
+config = mango_config.read_config()
+LOGIN_URL: str = config['links']['login_url']
+SEARCH_URL: str = config['links']['search_url']
+USERNAME: str = config['user info']['username']
+PASSWORD: str = config['user info']['password']
 
 
 class Search:
@@ -12,26 +19,22 @@ class Search:
     If login fails, program stops.
 
     Main attributes:
-        username: Username to mangadex.
-        password: Password for username.
         session : Current logged-in session.
 
     Instance methods:
         get_manga_id: Returns manga id for manga_title.
     """
 
-    def __init__(self, username: str, password: str):
+    def __init__(self):
 
-        self.username = username
-        self.password = password
         self.__login()
 
     def __login(self) -> None:
         """Tries logging into mangadex. If the login failed, calls
         sys.exit()"""
         self.session = requests.Session()
-        payload = {'login_username': self.username,
-                   'login_password': self.password,
+        payload = {'login_username': USERNAME,
+                   'login_password': PASSWORD,
                    'remember_me': 1
                    }
         p = self.session.post(LOGIN_URL, data=payload, timeout=20)
@@ -43,7 +46,7 @@ class Search:
                 print('Please check your username and password.')
                 sys.exit()
             else:
-                print(f'Logged in as {self.username} ♪~ ᕕ(ᐛ)ᕗ')
+                print(f'Logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
         else:
             print(
                 f'Unable to reach mangadex (╥﹏╥)...got {p.status_code} error.')

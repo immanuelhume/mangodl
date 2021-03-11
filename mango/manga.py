@@ -1,11 +1,19 @@
+# TODO CHECK FOR MISSING CHAPTERS!!!
+# TODO handle connection and server erros !!!
+
 import requests
 import asyncio
 import aiohttp
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+from os import PathLike
 
-from helpers import get_json, chunk, RateLimitedSession
-from constants import API_BASE
+from helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore
 from chapter import Chapter
+import mango_config
+
+# load config
+config = mango_config.read_config()
+API_BASE = config['links']['api_base']
 
 
 class Manga:
@@ -23,8 +31,8 @@ class Manga:
         compile_volume_info : Checks and assigns volume numbers to all chapters.
     """
 
-    def __init__(self, id: Union[str, int], api_base=API_BASE):
-        self.url = api_base + f'manga/{id}'
+    def __init__(self, id: Union[str, int]):
+        self.url = API_BASE + f'manga/{id}'
         self.data = get_json(self.url)
 
         self.chapters_data = get_json(self.url + '/chapters')['chapters']
@@ -32,7 +40,7 @@ class Manga:
 
         self.title = self.data['title']
 
-    def download_chapters(self, raw_path: str) -> Dict[float, int]:
+    def download_chapters(self, raw_path: PathLike) -> Dict[float, int]:
         """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
 
         For now, it only downloads english chapters.
@@ -48,39 +56,56 @@ class Manga:
         def __is_english(chapter: Dict) -> bool:
             return chapter['language'] == 'gb'
 
-        def __is_new(chapter: Dict, lst) -> bool:
-            return chapter['chapter'] not in lst
+        def __is_new(chapter: Dict) -> bool:
+            return chapter['chapter'] not in added
 
-        added = []
-        to_download: List[Chapter] = []
-        downloaded_chapters: List[Chapter] = []
+        async def check_server_and_download(session: RateLimitedSession,
+                                            chapter: Chapter) -> Awaitable:
+            if chapter:
+                await chapter.load(session)
+                if chapter.page_links:
+                    await chapter.download(session, raw_path)
+                else:  # chapter has no server - find a good chapter
+                    bad_chapters.append(chapter)
+                    check_server_and_download(session, find_another(chapter))
+            else:
+                print(
+                    f'Could not find any valid servers for chapter {chapter["chapter"]} ಥ_ಥ')
 
-        # BUG DOES NOT ACCOUNT FOR BAD SERVERS HERE
-        # stage chapters for download
-        for raw_chapter in self.chapters_data:
-            if __is_english(raw_chapter) and __is_new(raw_chapter, added):
-                chapter = Chapter(raw_chapter['id'])
-                to_download.append(chapter)
-                added.append(raw_chapter['chapter'])
-
-        async def check_server_and_download(session, chapter: Chapter) -> Awaitable:
-            await chapter.load(session)
-            if chapter.page_links:
-                await chapter.download(session, raw_path)
+        def find_another(bad_chapter: Chapter) -> Dict:
+            # find another instance of the chapter from self.chapter_data
+            wanted_num = bad_chapter.chapter_num
+            for raw_chapter in self.chapters_data:
+                num = raw_chapter['chapter']
+                if __is_english(raw_chapter) and num == wanted_num and raw_chapter not in bad_chapters:
+                    return raw_chapter
+            return None  # return None if no other chapter found
 
         async def main_download(to_download: List[Chapter]) -> Awaitable:
             downloads = []
             async with aiohttp.ClientSession() as session:
-                session = RateLimitedSession(session, 30, 30)
+                session = RateLimitedSession(session, 20, 20)
                 for chapter in to_download:
                     downloads.append(
                         check_server_and_download(session, chapter))
-                    downloaded_chapters.append(chapter)
-                await asyncio.gather(*downloads)
+                    downloaded.append(chapter)
+                await gather_with_semaphore(2, *downloads)
+
+        added: List[str] = []
+        to_download: List[Chapter] = []
+        downloaded: List[Chapter] = []
+        bad_chapters: List[Chapter] = []
+
+        # stage chapters for download
+        for raw_chapter in self.chapters_data:
+            if __is_english(raw_chapter) and __is_new(raw_chapter):
+                chapter = Chapter(raw_chapter['id'])
+                to_download.append(chapter)
+                added.append(raw_chapter['chapter'])
 
         asyncio.run(main_download(to_download))
 
-        return self.compile_volume_info(downloaded_chapters)
+        return self.compile_volume_info(downloaded)
 
     @staticmethod
     def compile_volume_info(chapters: List[Chapter]) -> Dict[float, int]:

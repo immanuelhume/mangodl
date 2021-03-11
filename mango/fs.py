@@ -3,6 +3,11 @@ import shutil
 from helpers import safe_mkdir
 from distutils.dir_util import copy_tree
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+from os import PathLike
+import mango_config
+
+config = mango_config.read_config()
+ROOT_DIR: PathLike = config['settings']['root_dir']
 
 
 class Fs:
@@ -21,24 +26,25 @@ class Fs:
         create_volumes  : Archives chapters into respective volumes.
     """
 
-    def __init__(self, root_dir: str, manga_title: str):
+    def __init__(self, manga_title: str):
         self.manga_title = manga_title
         # create a base directory in the root folder
-        self.base_path = os.path.join(root_dir, self.manga_title)
+        self.base_path = os.path.join(ROOT_DIR, self.manga_title)
         safe_mkdir(self.base_path)
         # make directory for raw images
         self.raw_path = os.path.join(self.base_path, 'raw')
         safe_mkdir(self.raw_path)
 
     @staticmethod
-    def to_cbz(dir_to_zip: str, destination: str) -> None:
-        """Creates .cbz file for folder at `dir_to_zip`.
+    def to_cbz(dir_to_zip: PathLike, destination: PathLike) -> None:
+        """Creates .cbz file for folder `dir_to_zip`.
 
         Arguments:
             dir_to_zip (str)  : Absolute path to folder to zip.
-            destination (str) : Directory to store the new .cbz file. 
-                                This must already exist.
+            destination (str) : Directory to store the new .cbz file. Should
+                                already exist. 
         """
+
         os.chdir(dir_to_zip)
         archive_name = os.path.split(dir_to_zip)[-1]
         archive_path = os.path.join(destination, archive_name)
@@ -50,12 +56,15 @@ class Fs:
 
         print(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
 
-    def create_volumes(self, chapter_mapping: Dict[float, int]) -> None:
+    def create_volumes(self, chap_map: Dict[float, int]) -> None:
         """Archives chapters into respective volumes.
 
         Creates a new folder `volumes_path` at `base_path`. Volume folders 
         are created inside `volumes_path`. Once zipped, the unzipped folder
         is removed.
+
+        Arguments:
+            chap_map (dict): Dict mapping chapter number to its volume number.
         """
         print('(っ˘ڡ˘ς) Preparing to compile into volumes...')
 
@@ -64,7 +73,7 @@ class Fs:
         safe_mkdir(volumes_path)
 
         for chapter in os.scandir(self.raw_path):
-            volume_num = chapter_mapping[float(chapter.name)]
+            volume_num = chap_map[float(chapter.name)]
             new_chapter_path = os.path.join(
                 volumes_path, f'{volume_num}', chapter.name)
             copy_tree(chapter.path, new_chapter_path)
@@ -72,7 +81,7 @@ class Fs:
         for volume in os.scandir(volumes_path):
             old_name = volume.path
             new_name = os.path.join(os.path.split(volume.path)[
-                                    0], f'{self.manga_title} Vol. {volume.name}')
+                                    0], f'{self.manga_title}, Vol. {volume.name}')
             os.rename(old_name, new_name)
 
             self.to_cbz(os.path.join(volumes_path,
