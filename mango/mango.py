@@ -4,6 +4,11 @@
 # TODO select range for chapter download
 # TODO handle connection and server erros !!!
 # TODO INITIAL LAUNCH - NEEDS TO ASK FOR PASSWORD
+# TODO AUTHENTICATION???
+# TODO handle the other command line args
+# TODO add choice for how many chapters per volume default
+# TODO CHAPTER NUMBER CAN BE '' APPARENTLY!!!
+# TODO pytest
 
 __version__ = "0.1.0"
 

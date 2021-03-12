@@ -39,7 +39,7 @@ class Search:
                    'login_password': PASSWORD,
                    'remember_me': 1
                    }
-        logger.info(f'attempting login now as {USERNAME}')
+        logger.info(f'attempting login to mangadex as {USERNAME}')
         p = self.session.post(LOGIN_URL, data=payload, timeout=20)
         if p.ok:
             # check if login succeeded

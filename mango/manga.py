@@ -5,9 +5,10 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 import sys
 from pathlib import Path
 import tqdm
+import math
 
 from .helpers import (get_json, chunk, RateLimitedSession,
-                      gather_with_semaphore, safe_to_int, horizontal_rule)
+                      gather_with_semaphore, safe_to_int, horizontal_rule, find_int_between)
 from .chapter import Chapter
 from .config import mango_config
 
@@ -33,7 +34,7 @@ class Manga:
         title (str)         : Title of manga.
         data (dict)         : Data portion of json obtained from api.
         chapters_data (list): List containing raw chapter dictionaries.
-        bad_chapters (list) : List of chapters w/o image servers.
+        serverless_chapters (list) : List of chapters w/o image servers.
 
     Methods:
         download_chapters   : Downloads chapters asynchronously for the manga.
@@ -49,7 +50,6 @@ class Manga:
         self.chapters_data.reverse()
 
         self.title = self.data['title']
-        logger.info(f'the manga to download is {self.title}')
 
         self.serverless_chapters: List[str] = []
 
@@ -71,10 +71,10 @@ class Manga:
         bad_chapters: List[str] = []  # chapter ids with no server
         downloaded: List[Dict] = []
 
-        def __is_english(chapter: Dict) -> bool:
+        def is_english(chapter: Dict) -> bool:
             return chapter['language'] == 'gb'
 
-        def __is_new(chapter: Dict) -> bool:
+        def is_new(chapter: Dict) -> bool:
             return chapter['chapter'] not in added
 
         async def check_server_and_download(session: RateLimitedSession,
@@ -101,7 +101,7 @@ class Manga:
             for raw_chapter in self.chapters_data:
                 num = raw_chapter['chapter']
                 chap_id = raw_chapter['id']
-                if __is_english(raw_chapter) and num == wanted_num and chap_id not in bad_chapters:
+                if is_english(raw_chapter) and num == wanted_num and chap_id not in bad_chapters:
                     tqdm.tqdm.write(
                         f'{DEBUG_PREFIX}found another instance of chapter {wanted_num} (id {raw_chapter["id"]})')
                     return raw_chapter
@@ -120,18 +120,62 @@ class Manga:
         # stage chapters for download
         # this is just a first pass, will not account for missing servers
         for raw_chapter in self.chapters_data:
-            if __is_english(raw_chapter) and __is_new(raw_chapter):
+            if is_english(raw_chapter) and is_new(raw_chapter):
                 to_download.append(raw_chapter)
                 added.append(raw_chapter['chapter'])
 
+        if not to_download:
+            logger.critical(f'nothing available to download for {self.title}')
+            horizontal_rule()
+            sys.exit()
+
         # a prompt here
-        self.confirm_download(len(to_download))
+        self._display_chapters(to_download)
 
         asyncio.run(main_download(to_download))
 
         logger.info('all chapters downloaded (ᵔᴥᵔ)')
-
         return self.compile_volume_info(downloaded)
+
+    def _display_chapters(self, chaps: List[Dict]):
+        l = [safe_to_int(chap['chapter']) for chap in chaps]
+        l.sort()
+        missing_chaps = find_int_between(l)
+        self.missing_chapters: List[str] = [str(_) for _ in missing_chaps]
+        horizontal_rule()
+        print(f'Found {len(l)} chapters for {self.title} \\ (•◡•) /')
+        if len(l) == 1:
+            print(f'Chapter {l[0]} can be downloaded.')
+        else:
+            print(f'First chapter: {l[0]}')
+            print(f'Last chapter: {l[-1]}')
+        if self.missing_chapters:
+            mc = ', '.join(self.missing_chapters)
+            logger.critical(f'chapter(s) appear to be missing: {mc}')
+
+        self._confirm_download(len(l))
+
+    def _confirm_download(self, chap_count):
+        print(f'\nProceed to download {chap_count} chapters of {self.title}?')
+        print('[y] - yes    [n] - no')
+        check = input()
+        if check.lower() == 'n':
+            logger.info(f'received input \'{check}\' - exiting program')
+            sys.exit()
+        elif check.lower() == 'y':
+            print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
+        else:
+            logger.warning(f'invalid input - {check}')
+            self._confirm_download(chap_count)
+
+    def print_bad_chapters(self):
+        if self.serverless_chapters:
+            horizontal_rule()
+            print(
+                'These chapters were not downloaded because no image server could be found: ')
+            print(', '.join(self.serverless_chapters))
+        else:
+            pass
 
     @ staticmethod
     def compile_volume_info(chapters: List[Dict]) -> Dict[float, int]:
@@ -265,30 +309,6 @@ class Manga:
 
         logger.info('all chapters have been assigned to a volume')
         return chap_to_vol
-
-    def confirm_download(self, chap_count):
-        horizontal_rule()
-        print(f'{chap_count} chapters will be downloaded ~(˘▾˘~)')
-        print(f'Proceed with download of {self.title}?')
-        print('[y] - yes    [n] - no')
-        check = input()
-        if check.lower() == 'n':
-            logger.info(f'received input - {check} - exiting program')
-            sys.exit()
-        elif check.lower() == 'y':
-            print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
-        else:
-            logger.warning(f'invalid input - {check}')
-            self.confirm_download(chap_count)
-
-    def print_bad_chapters(self):
-        if self.serverless_chapters:
-            horizontal_rule()
-            print(
-                'These chapters were not downloaded because no image server could be found: ')
-            print(', '.join(self.serverless_chapters))
-        else:
-            pass
 
 
 if __name__ == '__main__':

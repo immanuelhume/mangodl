@@ -8,6 +8,7 @@ import asyncio
 from aiohttp import ClientSession
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
+import math
 
 import logging
 logger = logging.getLogger(__name__)
@@ -141,5 +142,25 @@ async def gather_with_semaphore(n, *tasks):
     return await asyncio.gather(*(sem_task(task) for task in tasks))
 
 
+def find_int_between(c_lst: List[Union[float, int]]) -> List:
+    missing = []
+    for i, c in enumerate(c_lst):
+        try:
+            nc = c_lst[i + 1]
+            assert nc <= (c + 1)
+        except AssertionError as e:
+            # missing chapter
+            logger.error(e, exc_info=True)
+            logger.info(
+                f'integer value(s) exist between {c} and {nc}')
+            for j in range(math.floor(c) + 1, math.ceil(nc)):
+                logger.debug(f'{j} is between {c} and {nc}')
+                missing.append(j)
+        except IndexError:
+            # reached the last number
+            pass
+    return missing
+
+
 if __name__ == '__main__':
-    pass
+    print(find_int_between([1, 6]))
