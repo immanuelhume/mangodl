@@ -6,9 +6,10 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 from .config import mango_config
 
+import logging
+logger = logging.getLogger(__name__)
 
-config = mango_config.read_config()
-ROOT_DIR: Path = config['settings']['root_dir']
+ROOT_DIR: Path = mango_config.get_root_dir()
 
 
 class Fs:
@@ -50,12 +51,15 @@ class Fs:
         archive_name = os.path.split(dir_to_zip)[-1]
         archive_path = os.path.join(destination, archive_name)
         shutil.make_archive(base_name=archive_path, format='zip')
+        logger.debug(f'made .zip archive -> {archive_path}')
 
         new_volume_path = os.path.join(destination, f'{archive_name}.zip')
         base_name = os.path.splitext(new_volume_path)[0]
-        os.rename(new_volume_path, base_name + '.cbz')
+        final_name = base_name + '.cbz'
+        os.rename(new_volume_path, final_name)
 
-        print(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
+        logger.debug(f'{new_volume_path} renamed -> {final_name}')
+        logger.info(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
 
     def create_volumes(self, chap_map: Dict[float, int]) -> None:
         """Archives chapters into respective volumes.
@@ -78,6 +82,7 @@ class Fs:
             new_chapter_path = os.path.join(
                 volumes_path, f'{volume_num}', chapter.name)
             copy_tree(chapter.path, new_chapter_path)
+            logger.debug(f'copied {chapter.path} -> {new_chapter_path}')
 
         for volume in os.scandir(volumes_path):
             old_name = volume.path
@@ -89,6 +94,7 @@ class Fs:
                                      new_name), volumes_path)
 
             shutil.rmtree(new_name)
+            logger.debug(f'{new_name} deleted')
 
 
 if __name__ == '__main__':

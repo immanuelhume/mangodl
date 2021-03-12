@@ -9,9 +9,18 @@ import tqdm
 from .helpers import safe_mkdir, RateLimitedSession
 from .config import mango_config
 
+import logging
+logger = logging.getLogger(__name__)
+
+INFO_PREFIX = f'{__name__} | [INFO]: '
+DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
+WARNING_PREFIX = f'{__name__} | [WARNING]: '
+ERROR_PREFIX = f'{__name__} | [ERROR]: '
+CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
+
+
 # load config
-config = mango_config.read_config()
-API_BASE = config['links']['api_base']
+API_BASE = mango_config.get_api_base()
 
 
 class Chapter:
@@ -36,10 +45,15 @@ class Chapter:
     def __init__(self, id: Union[str, int]):
         self.url = API_BASE + f'chapter/{id}'
         self.id = id
+        tqdm.tqdm.write(
+            f'{DEBUG_PREFIX}created Chapter instance for chapter id {id}')
 
     async def load(self, session: RateLimitedSession) -> Awaitable:
         """Sends get request to collect chapter info. Calls `get_page_links`
         at the end."""
+
+        tqdm.tqdm.write(f'{DEBUG_PREFIX}sending GET request to {self.url}')
+
         async with await session.get(self.url) as resp:
             self.data = await resp.json(content_type=None)
         self.data = self.data['data']
@@ -48,6 +62,9 @@ class Chapter:
         self.hash = data['hash']
         self.chapter_num = data['chapter']
         self.volume_num = data['volume']
+
+        tqdm.tqdm.write(
+            f'{DEBUG_PREFIX}info loaded for chapter {self.chapter_num} (id {self.id})')
 
         self.get_page_links()
 
@@ -58,11 +75,12 @@ class Chapter:
             server_base = self.data['server'] + f'{self.hash}/'
             self.page_links = [server_base +
                                page for page in self.data['pages']]
-            # print(
-            # f'Data server found for id {self.id} (chapter {self.chapter_num}) ~(˘▾˘~)')
-        except KeyError:
-            # print(
-            # f'No data server for id {self.id} (chapter {self.chapter_num}) ლ(ಠ益ಠლ)')
+            tqdm.tqdm.write(
+                f'{DEBUG_PREFIX}found data server for chapter {self.chapter_num} with {len(self.page_links)} pages')
+        except KeyError as e:
+            tqdm.tqdm.write(e)
+            tqdm.tqdm.write(
+                f'{WARNING_PREFIX}could not find image servers for chapter id {self.id}')
             self.page_links = False
 
     async def download(self, session, raw_path: Path) -> Awaitable:
@@ -76,24 +94,24 @@ class Chapter:
                                url: str,
                                page_path: Path) -> Awaitable:
             async with await session.get(url) as resp:
+                tqdm.tqdm.write(f'{DEBUG_PREFIX}sending GET request to {url}')
                 data = await resp.read()
                 async with aiofiles.open(page_path, 'wb') as out_file:
                     await out_file.write(data)
+                    tqdm.tqdm.write(f'{INFO_PREFIX}saved -> {page_path}')
 
         async def download_all(session: RateLimitedSession, urls: str) -> Awaitable:
             tasks = []
             for url in urls:
                 page_path = os.path.join(chapter_path, url.split('/')[-1])
                 tasks.append(download_one(session, url, page_path))
-            # await asyncio.gather(*tasks)
             return [await task for task in tqdm.tqdm(asyncio.as_completed(tasks),
                                                      total=len(tasks),
                                                      desc=f'Chapter {self.chapter_num}',
-                                                     bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')]
+                                                     bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                                                     leave=False)]
 
         await download_all(session, self.page_links)
-
-        #print(f'Chapter {self.chapter_num} downloaded (~˘▾˘)~')
 
 
 if __name__ == '__main__':

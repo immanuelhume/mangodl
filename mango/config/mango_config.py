@@ -1,14 +1,8 @@
 import configparser
 import os
 
-CONFIG_FILE = os.path.join(os.path.dirname(
-    os.path.dirname(__file__)), 'config', 'mango.ini')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mango_config.ini')
 config = configparser.ConfigParser()
-
-
-def read_config():
-    config.read(CONFIG_FILE)
-    return config
 
 
 def get_username() -> str:

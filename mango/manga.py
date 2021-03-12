@@ -4,13 +4,15 @@ import aiohttp
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
-from .helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore
+from .helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore, safe_to_int
 from .chapter import Chapter
 from .config import mango_config
 
+import logging
+logger = logging.getLogger(__name__)
+
 # load config
-config = mango_config.read_config()
-API_BASE = config['links']['api_base']
+API_BASE = mango_config.get_api_base()
 
 
 class Manga:
@@ -29,6 +31,7 @@ class Manga:
     """
 
     def __init__(self, id: Union[str, int]):
+        logger.debug('creating Manga object')
         self.url = API_BASE + f'manga/{id}'
         self.data = get_json(self.url)
 
@@ -36,6 +39,7 @@ class Manga:
         self.chapters_data.reverse()
 
         self.title = self.data['title']
+        logger.info(f'the manga to download is {self.title}')
 
     def download_chapters(self, raw_path: Path) -> Dict[float, int]:
         """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
@@ -66,15 +70,18 @@ class Manga:
                     bad_chapters.append(chapter)
                     check_server_and_download(session, find_another(chapter))
             else:
-                print(
-                    f'Could not find any valid servers for chapter {chapter["chapter"]} ಥ_ಥ')
+                logger.critical(
+                    f'could not find any valid servers for chapter {chapter["chapter"]} ಥ_ಥ')
 
         def find_another(bad_chapter: Chapter) -> Dict:
             # find another instance of the chapter from self.chapter_data
             wanted_num = bad_chapter.chapter_num
+            logger.info(f'finding another server for chapter {wanted_num}')
             for raw_chapter in self.chapters_data:
                 num = raw_chapter['chapter']
                 if __is_english(raw_chapter) and num == wanted_num and raw_chapter not in bad_chapters:
+                    logger.info(
+                        f'found another instance of chapter {wanted_num} (id {raw_chapter["id"]})')
                     return raw_chapter
             return None  # return None if no other chapter found
 
@@ -100,17 +107,23 @@ class Manga:
                 to_download.append(chapter)
                 added.append(raw_chapter['chapter'])
 
+        print(f'{"="*36}')
+        print(f'{len(to_download)} chapters will be downloaded (hit `Enter`)')
+        input()
+
         asyncio.run(main_download(to_download))
+
+        logger.info('all chapters downloaded (ᵔᴥᵔ)')
 
         return self.compile_volume_info(downloaded)
 
-    @staticmethod
+    @ staticmethod
     def compile_volume_info(chapters: List[Chapter]) -> Dict[float, int]:
         """Attempts to assign a volume number to each chapter.
 
         Not every chapter comes with volume info. The function will read and
-        use whatever info is available first. For chapters without volume 
-        data, we 1) slot them into existing volumes if they fit or 2) create 
+        use whatever info is available first. For chapters without volume
+        data, we 1) slot them into existing volumes if they fit or 2) create
         new volumes for them.
 
         If not a single chapter has volume info, defaults to 10 chapters per
@@ -123,6 +136,8 @@ class Manga:
             Dict mapping chapter number (float) to the assigned volume number (int).
         """
 
+        logger.info('figuring out which chapter belongs to which volume')
+
         contents: Dict[int, List[float]] = {}
         chap_to_vol: Dict[float, int] = {}
         orphaned_chapters: List(float) = []
@@ -133,6 +148,12 @@ class Manga:
                 volume_num = int(chapter.volume_num)
             except ValueError:
                 volume_num = ''
+                logger.warning(
+                    f'no volume info for chapter {chapter.chapter_num}')
+            else:
+                logger.debug(
+                    f'chapter {chapter.chapter_num} -> volume {chapter.volume_num}')
+
             # chapter number is a float
             chapter_num = float(chapter.chapter_num)
 
@@ -145,6 +166,7 @@ class Manga:
                 orphaned_chapters.append(chapter_num)
             chap_to_vol.update({chapter_num: volume_num})
 
+        # sort the lists just to be safe
         for volume in contents:
             contents[volume].sort()
         orphaned_chapters.sort()
@@ -176,6 +198,9 @@ class Manga:
                         contents[volume_num].sort()
                         chap_to_vol.update({orphan: volume_num})
 
+                        logger.debug(
+                            f'chapter {safe_to_int(orphan)} -> volume {volume_num}')
+
             if orphaned_chapters:
                 # compute average length of volumes detected so far
                 chapter_lengths = [len(chapter_list)
@@ -195,23 +220,34 @@ class Manga:
                 if below:
                     for new_volume in chunk(below, average_length):
                         new_volume_num = volume_numbers[0] - 1
+                        logger.debug(f'creating volume {new_volume_num}')
                         volume_numbers.insert(0, new_volume_num)
                         for chap in new_volume:
                             chap_to_vol.update({chap: new_volume_num})
+                            logger.debug(
+                                f'chapter {safe_to_int(chap)} -> volume {new_volume_num}')
                 if above:
                     for new_volume in chunk(above, average_length):
                         new_volume_num = volume_numbers[-1] + 1
+                        logger.debug(f'creating volume {new_volume_num}')
                         volume_numbers.append(new_volume_num)
                         for chap in new_volume:
                             chap_to_vol.update({chap: new_volume_num})
+                            logger.debug(
+                                f'chapter {safe_to_int(chap)} -> volume {new_volume_num}')
 
         elif not contents:  # no volume info whatsoever
+            logger.warning(
+                f'no volume info found...defaulting to 10 chapters per volume')
             for new_volume in chunk(orphaned_chapters, 10):
                 new_volume_num = len(volume_numbers) + 1
                 volume_numbers.append(new_volume_num)
                 for chap in new_volume:
                     chap_to_vol.update({chap: new_volume_num})
+                    logger.debug(
+                        f'chapter {safe_to_int(chap)} -> volume {new_volume_num}')
 
+        logger.info('all chapters have been assigned to a volume')
         return chap_to_vol
 
 

@@ -8,34 +8,45 @@
 
 __version__ = "0.1.0"
 
-from .cli import safe_args as args
+from mango_logging import mango_logging
+from .cli import ARGS
 
 from .chapter import Chapter
 from .manga import Manga
 from .search import Search
 from .fs import Fs
-import os
-import time
-import argparse
+
+import sys
+import logging
+logger = logging.getLogger(__name__)
 
 
 def main():
-
+    # search for manga
     search = Search()
-    manga_id = search.get_manga_id(args.manga)
-
+    manga_id = search.get_manga_id(ARGS.manga)
+    # if manga is available on mangadex, proceed with download
     manga = Manga(manga_id)
+
+    confirm_download(manga.title)
+
     fs = Fs(manga.title)
-
-    start_time = time.time()
-
     chapter_mappings = manga.download_chapters(fs.raw_path)
-
-    duration = time.time() - start_time
-    print(f'Took {duration / 60:.2f} minutes.')
-
     fs.create_volumes(chapter_mappings)
 
+    logger.info('end of program')
 
-if __name__ == '__main__':
-    main()
+
+def confirm_download(manga: str):
+    print(f'{"=" * 36}')
+    print(f'Proceed with download of - {manga}?')
+    print('[y] - yes    [n] - no')
+    check = input()
+    if check.lower() == 'n':
+        logger.info(f'received input - {check} - exiting program')
+        sys.exit()
+    elif check.lower() == 'y':
+        print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
+    else:
+        logger.warning(f'invalid input - {check}')
+        confirm_download(manga)

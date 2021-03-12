@@ -9,8 +9,11 @@ from aiohttp import ClientSession
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
+import logging
+logger = logging.getLogger(__name__)
 
-def get_json(url: str, time_out: int = 30, max_tries: int = 10, session=False) -> Dict:
+
+def get_json(url: str, time_out: int = 30, max_tries: int = 10, session=None) -> Dict:
     """Sends get request to page. Expects a json response.
 
     Arguments:
@@ -23,6 +26,8 @@ def get_json(url: str, time_out: int = 30, max_tries: int = 10, session=False) -
     Returns:
         A dictionary of the data portion of JSON response.
     """
+    logger.info(
+        f'sending get request to {url}, will time out in {time_out}s or after {max_tries} tries')
     tries = 1
     while True:
         try:
@@ -32,21 +37,25 @@ def get_json(url: str, time_out: int = 30, max_tries: int = 10, session=False) -
                 resp = requests.get(url, timeout=time_out)
 
             if resp.ok:
+                logger.info(f'good response from {url}')
                 return resp.json()['data']
             elif tries == max_tries:
-                print(
-                    f'༼ つ ಥ_ಥ ༽つ {url} returned HTTP {resp.status_code} error...')
+                logger.error(
+                    f'༼ つ ಥ_ಥ ༽つ {url} returned HTTP {resp.status_code} error {max_tries} times')
                 sys.exit()
             else:
                 time.sleep(0.5)
                 tries += 1
                 continue
-        except RequestException:
-            print(
-                f'༼ つ ಥ_ಥ ༽つ Unable to reach {url} ...please try again later.')
+        except RequestException as e:
+            logger.error(e, exc_info=True)
+            logger.error(
+                f'༼ つ ಥ_ಥ ༽つ unable to reach {url} ...please try again later')
             sys.exit()
-        except ValueError:
-            print('༼ つ ಥ_ಥ ༽つ Got an invalid response...please try again later.')
+        except ValueError as e:
+            logger.error(e, exc_info=True)
+            logger.error(
+                '༼ つ ಥ_ಥ ༽つ got an invalid response...please try again later')
             sys.exit()
 
 
@@ -73,6 +82,17 @@ def safe_mkdir(p: Path) -> None:
         pass
 
 
+def safe_to_int(j: Union[float, str]) -> Union[float, int]:
+    try:
+        i = float(j)
+    except ValueError as e:
+        logger.error(e, exc_info=True)
+        logger.error(f'{j} is not a number')
+        return j
+    else:
+        return int(i) if int(i) == i else i
+
+
 class RateLimitedSession():
     """Wrapper class for `aiohttp.ClientSession` objects. Injects
     a limiter of `rate` HTTP calls per second.
@@ -82,6 +102,8 @@ class RateLimitedSession():
         self.session = session
         self.rate = rate
         self.max_tokens = max_tokens
+
+        logger.debug(f'created rate-limited client at {rate} calls per second')
 
         self.tokens = self.max_tokens
         self.updated_at = time.monotonic()

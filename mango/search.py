@@ -5,12 +5,14 @@ import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from .config import mango_config
 
+import logging
+logger = logging.getLogger(__name__)
+
 # set up config variables
-config = mango_config.read_config()
-LOGIN_URL: str = config['links']['login_url']
-SEARCH_URL: str = config['links']['search_url']
-USERNAME: str = config['user info']['username']
-PASSWORD: str = config['user info']['password']
+SEARCH_URL: str = mango_config.get_search_url()
+LOGIN_URL: str = mango_config.get_login_url()
+USERNAME: str = mango_config.get_username()
+PASSWORD: str = mango_config.get_password()
 
 
 class Search:
@@ -26,7 +28,6 @@ class Search:
     """
 
     def __init__(self):
-
         self.__login()
 
     def __login(self) -> None:
@@ -37,19 +38,22 @@ class Search:
                    'login_password': PASSWORD,
                    'remember_me': 1
                    }
+        logger.info(f'attempting login now as {USERNAME}')
         p = self.session.post(LOGIN_URL, data=payload, timeout=20)
         if p.ok:
             # check if login succeeded
             soup = bs(p.text, 'lxml')
-            if soup.title.string != 'Home - MangaDex':
-                print('Login failed (╥﹏╥)')
-                print('Please check your username and password.')
+            if soup.title.string != 'Home - MangaDex':  # not the best checking
+                logger.warning('login failed (╥﹏╥)')
+                logger.info('please check your username and password')
+                logger.info(
+                    'you can reset your username and password with the -u and -p flags')
                 sys.exit()
             else:
-                print(f'Logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
+                logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
         else:
-            print(
-                f'Unable to reach mangadex (╥﹏╥)...got {p.status_code} error.')
+            logger.error(
+                f'unable to reach mangadex (╥﹏╥)...got HTTP {p.status_code} status code')
             sys.exit()
 
     def get_manga_id(self, manga_title: str) -> Optional[str]:
@@ -61,16 +65,26 @@ class Search:
         """
         resp = self.session.get(SEARCH_URL + manga_title, timeout=20)
         if not resp.ok:
-            print(f'Got error code {resp.status_code} (╯°□°）╯︵ ┻━┻')
+            logger.error(
+                f'got HTTP status code {resp.status_code} (╯°□°）╯︵ ┻━┻')
             sys.exit()
         soup = bs(resp.text, 'lxml')
         manga_entries = soup.find_all('div', class_='manga-entry')
         if manga_entries:
+            logger.info(
+                f'got {len(manga_entries)} results for search-string {manga_title} ')
+            print(f'{"=" * 36}')
             for manga_entry in manga_entries:
                 manga_title = manga_entry.find(
                     'a', class_='manga_title').string
-                print(f'{manga_entries.index(manga_entry)}: {manga_title}')
-            print('These are the results obtained.')
+                print(
+                    f'{manga_entries.index(manga_entry)}: {manga_title}')
+
+            if len(manga_entries) == 1:
+                print(f'↑ {len(manga_entries)} result on mangadex ↑')
+            else:
+                print(f'↑ {len(manga_entries)} results on mangadex ↑')
+
             index = int(
                 input('Enter the index of the manga you want to download: '))
             link = manga_entries[index].find(
@@ -78,5 +92,5 @@ class Search:
             id = link.split('/')[2]
             return id
         else:
-            print(f'Could not find {manga_title} (╯°□°）╯︵ ┻━┻')
+            logger.warning(f'Could not find {manga_title} (╯°□°）╯︵ ┻━┻')
             sys.exit()
