@@ -6,6 +6,7 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 from .config import mango_config
 
+
 config = mango_config.read_config()
 ROOT_DIR: Path = config['settings']['root_dir']
 

@@ -1,7 +1,14 @@
 # TODO how the fuck do i package and interface?
 # TODO CHECK FOR MISSING CHAPTERS!!!
+# TODO print out list of chapters avail first
 # TODO handle connection and server erros !!!
+# TODO PRINT OR LOG?
+# TODO ARG PARSING + INTEGRATE WITH CONFIG WRITING
+# TODO INITIAL LAUNCH - NEEDS TO ASK FOR PASSWORD
 
+__version__ = "0.1.0"
+
+from .cli import safe_args as args
 
 from .chapter import Chapter
 from .manga import Manga
@@ -10,29 +17,12 @@ from .fs import Fs
 import os
 import time
 import argparse
-from pathlib import Path
-
-__version__ = "0.1.0"
-
-# argparser = argparse.ArgumentParser()
-# argparser.add_argument('manga', action='store',
-#                     help='Name of the manga to download.', type=str)
-# argparser.add_argument('-p', '--path', action='store', type=PathLike, default=?,
-#                     help='Absolute path download folder.')
-# argparser.add_argument('-l', '--language', action='store',
-#                     choices=['gb', 'ru', 'it', 'th',
-#                              'sa', 'id', 'br', 'tr',
-#                              'il', 'es', 'hu', 'ph'],
-#                     default='gb', help='Select manga language.')
-# argparser.add_argument('-s', '--saver', action='store_true',
-#                     help='Use low quality images.')
 
 
 def main():
-    manga_name = 'kaguya sama'
 
     search = Search()
-    manga_id = search.get_manga_id(manga_name)
+    manga_id = search.get_manga_id(args.manga)
 
     manga = Manga(manga_id)
     fs = Fs(manga.title)
