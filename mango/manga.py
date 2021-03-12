@@ -2,14 +2,23 @@ import requests
 import asyncio
 import aiohttp
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+import sys
 from pathlib import Path
+import tqdm
 
-from .helpers import get_json, chunk, RateLimitedSession, gather_with_semaphore, safe_to_int
+from .helpers import (get_json, chunk, RateLimitedSession,
+                      gather_with_semaphore, safe_to_int, horizontal_rule)
 from .chapter import Chapter
 from .config import mango_config
 
 import logging
 logger = logging.getLogger(__name__)
+# set up logging prefixes for use in tqdm.tqdm.write
+INFO_PREFIX = f'{__name__} | [INFO]: '
+DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
+WARNING_PREFIX = f'{__name__} | [WARNING]: '
+ERROR_PREFIX = f'{__name__} | [ERROR]: '
+CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 
 # load config
 API_BASE = mango_config.get_api_base()
@@ -24,6 +33,7 @@ class Manga:
         title (str)         : Title of manga.
         data (dict)         : Data portion of json obtained from api.
         chapters_data (list): List containing raw chapter dictionaries.
+        bad_chapters (list) : List of chapters w/o image servers.
 
     Methods:
         download_chapters   : Downloads chapters asynchronously for the manga.
@@ -41,6 +51,8 @@ class Manga:
         self.title = self.data['title']
         logger.info(f'the manga to download is {self.title}')
 
+        self.serverless_chapters: List[str] = []
+
     def download_chapters(self, raw_path: Path) -> Dict[float, int]:
         """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
 
@@ -54,6 +66,11 @@ class Manga:
             This is from calling `compile_volume_info`.
 
         """
+        added: List[str] = []  # chapter numbers staged for download
+        to_download: List[Dict] = []  # dict for chapters staged for download
+        bad_chapters: List[str] = []  # chapter ids with no server
+        downloaded: List[Dict] = []
+
         def __is_english(chapter: Dict) -> bool:
             return chapter['language'] == 'gb'
 
@@ -61,55 +78,54 @@ class Manga:
             return chapter['chapter'] not in added
 
         async def check_server_and_download(session: RateLimitedSession,
-                                            chapter: Chapter) -> Awaitable:
-            if chapter:
+                                            raw_chapter: Dict) -> Awaitable:
+            if raw_chapter:
+                chapter = Chapter(raw_chapter['id'])
                 await chapter.load(session)
-                if chapter.page_links:
+                if chapter.page_links:  # chapter has image server
                     await chapter.download(session, raw_path)
                 else:  # chapter has no server - find a good chapter
-                    bad_chapters.append(chapter)
-                    check_server_and_download(session, find_another(chapter))
-            else:
-                logger.critical(
-                    f'could not find any valid servers for chapter {chapter["chapter"]} ಥ_ಥ')
+                    bad_chapters.append(raw_chapter['id'])
+                    await check_server_and_download(
+                        session, find_another(raw_chapter))
+            else:  # tried our best and still no servers
+                self.serverless_chapters.append(raw_chapter['chapter'])
+                tqdm.tqdm.write(
+                    f'{CRITICAL_PREFIX}could not find any valid servers for chapter {raw_chapter["chapter"]} ಥ_ಥ')
 
-        def find_another(bad_chapter: Chapter) -> Dict:
+        def find_another(bad_chapter: Dict) -> Optional[Chapter]:
             # find another instance of the chapter from self.chapter_data
-            wanted_num = bad_chapter.chapter_num
-            logger.info(f'finding another server for chapter {wanted_num}')
+            wanted_num = bad_chapter['chapter']
+            tqdm.tqdm.write(
+                f'{DEBUG_PREFIX}finding another server for chapter {wanted_num}')
             for raw_chapter in self.chapters_data:
                 num = raw_chapter['chapter']
-                if __is_english(raw_chapter) and num == wanted_num and raw_chapter not in bad_chapters:
-                    logger.info(
-                        f'found another instance of chapter {wanted_num} (id {raw_chapter["id"]})')
+                chap_id = raw_chapter['id']
+                if __is_english(raw_chapter) and num == wanted_num and chap_id not in bad_chapters:
+                    tqdm.tqdm.write(
+                        f'{DEBUG_PREFIX}found another instance of chapter {wanted_num} (id {raw_chapter["id"]})')
                     return raw_chapter
             return None  # return None if no other chapter found
 
-        async def main_download(to_download: List[Chapter]) -> Awaitable:
+        async def main_download(to_download: List[Dict]) -> Awaitable:
             downloads = []
             async with aiohttp.ClientSession() as session:
                 session = RateLimitedSession(session, 20, 20)
-                for chapter in to_download:
+                for raw_chapter in to_download:
                     downloads.append(
-                        check_server_and_download(session, chapter))
-                    downloaded.append(chapter)
+                        check_server_and_download(session, raw_chapter))
+                    downloaded.append(raw_chapter)
                 await gather_with_semaphore(2, *downloads)
 
-        added: List[str] = []
-        to_download: List[Chapter] = []
-        downloaded: List[Chapter] = []
-        bad_chapters: List[Chapter] = []
-
         # stage chapters for download
+        # this is just a first pass, will not account for missing servers
         for raw_chapter in self.chapters_data:
             if __is_english(raw_chapter) and __is_new(raw_chapter):
-                chapter = Chapter(raw_chapter['id'])
-                to_download.append(chapter)
+                to_download.append(raw_chapter)
                 added.append(raw_chapter['chapter'])
 
-        print(f'{"="*36}')
-        print(f'{len(to_download)} chapters will be downloaded (hit `Enter`)')
-        input()
+        # a prompt here
+        self.confirm_download(len(to_download))
 
         asyncio.run(main_download(to_download))
 
@@ -118,7 +134,7 @@ class Manga:
         return self.compile_volume_info(downloaded)
 
     @ staticmethod
-    def compile_volume_info(chapters: List[Chapter]) -> Dict[float, int]:
+    def compile_volume_info(chapters: List[Dict]) -> Dict[float, int]:
         """Attempts to assign a volume number to each chapter.
 
         Not every chapter comes with volume info. The function will read and
@@ -130,7 +146,7 @@ class Manga:
         volume.
 
         Arguments:
-            chapters (list): List of Chapter objects.
+            chapters (list): List of raw chapter dictionaries.
 
         Returns:
             Dict mapping chapter number (float) to the assigned volume number (int).
@@ -145,17 +161,17 @@ class Manga:
         # assign volumes for chapters which carry volume data
         for chapter in chapters:
             try:
-                volume_num = int(chapter.volume_num)
+                volume_num = int(chapter["volume"])
             except ValueError:
                 volume_num = ''
                 logger.warning(
-                    f'no volume info for chapter {chapter.chapter_num}')
+                    f'no volume info for chapter {chapter["chapter"]}')
             else:
-                logger.debug(
-                    f'chapter {chapter.chapter_num} -> volume {chapter.volume_num}')
+                logger.info(
+                    f'chapter {chapter["chapter"]} -> volume {chapter["volume"]}')
 
             # chapter number is a float
-            chapter_num = float(chapter.chapter_num)
+            chapter_num = float(chapter["chapter"])
 
             if volume_num != '':
                 if volume_num in contents:
@@ -249,6 +265,30 @@ class Manga:
 
         logger.info('all chapters have been assigned to a volume')
         return chap_to_vol
+
+    def confirm_download(self, chap_count):
+        horizontal_rule()
+        print(f'{chap_count} chapters will be downloaded ~(˘▾˘~)')
+        print(f'Proceed with download of {self.title}?')
+        print('[y] - yes    [n] - no')
+        check = input()
+        if check.lower() == 'n':
+            logger.info(f'received input - {check} - exiting program')
+            sys.exit()
+        elif check.lower() == 'y':
+            print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
+        else:
+            logger.warning(f'invalid input - {check}')
+            self.confirm_download(chap_count)
+
+    def print_bad_chapters(self):
+        if self.serverless_chapters:
+            horizontal_rule()
+            print(
+                'These chapters were not downloaded because no image server could be found: ')
+            print(', '.join(self.serverless_chapters))
+        else:
+            pass
 
 
 if __name__ == '__main__':

@@ -93,6 +93,10 @@ def safe_to_int(j: Union[float, str]) -> Union[float, int]:
         return int(i) if int(i) == i else i
 
 
+def horizontal_rule(char: str = '=', length: int = 36) -> None:
+    print(f'{char*length}')
+
+
 class RateLimitedSession():
     """Wrapper class for `aiohttp.ClientSession` objects. Injects
     a limiter of `rate` HTTP calls per second.

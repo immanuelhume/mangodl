@@ -4,6 +4,7 @@ import lxml
 import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from .config import mango_config
+from .helpers import horizontal_rule
 
 import logging
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ class Search:
         if manga_entries:
             logger.info(
                 f'got {len(manga_entries)} results for search-string {manga_title} ')
-            print(f'{"=" * 36}')
+            horizontal_rule()
             for manga_entry in manga_entries:
                 manga_title = manga_entry.find(
                     'a', class_='manga_title').string

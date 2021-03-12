@@ -12,14 +12,13 @@ from .config import mango_config
 import logging
 logger = logging.getLogger(__name__)
 
+# set up logging prefixes for use in tqdm.tqdm.write
 INFO_PREFIX = f'{__name__} | [INFO]: '
 DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
 WARNING_PREFIX = f'{__name__} | [WARNING]: '
 ERROR_PREFIX = f'{__name__} | [ERROR]: '
 CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 
-
-# load config
 API_BASE = mango_config.get_api_base()
 
 
@@ -76,11 +75,10 @@ class Chapter:
             self.page_links = [server_base +
                                page for page in self.data['pages']]
             tqdm.tqdm.write(
-                f'{DEBUG_PREFIX}found data server for chapter {self.chapter_num} with {len(self.page_links)} pages')
-        except KeyError as e:
-            tqdm.tqdm.write(e)
+                f'{DEBUG_PREFIX}server OK for chapter {self.chapter_num} with {len(self.page_links)} pages')
+        except KeyError:
             tqdm.tqdm.write(
-                f'{WARNING_PREFIX}could not find image servers for chapter id {self.id}')
+                f'{WARNING_PREFIX}no image servers for chapter id {self.id} (chapter {self.chapter_num}) - KeyError')
             self.page_links = False
 
     async def download(self, session, raw_path: Path) -> Awaitable:
