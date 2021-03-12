@@ -8,7 +8,7 @@
 
 __version__ = "0.1.0"
 
-from mango_logging import mango_logging
+from .mango_logging import mango_logging
 from .cli import ARGS
 
 from .chapter import Chapter
