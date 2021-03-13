@@ -106,7 +106,7 @@ class Chapter:
             return [await task for task in tqdm.tqdm(asyncio.as_completed(tasks),
                                                      total=len(tasks),
                                                      desc=f'Chapter {self.chapter_num}',
-                                                     bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                                                     bar_format='{l_bar}{bar:30}| {n_fmt}/{total_fmt}',
                                                      leave=False)]
 
         await download_all(session, self.page_links)

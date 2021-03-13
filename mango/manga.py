@@ -54,7 +54,8 @@ class Manga:
         self.chapters_data.reverse()
 
         self.title = self.data['title']
-        self.to_download: List[Dict] = []
+        self.p_downloads: List[Dict] = []
+        self.s_downloads: List[Dict] = []
         self.serverless_chapters: List[str] = []
 
     def download_chapters(self, raw_path: Path) -> Dict[float, int]:
@@ -114,7 +115,7 @@ class Manga:
             downloads = []
             async with aiohttp.ClientSession() as session:
                 session = RateLimitedSession(session, 20, 20)
-                for raw_chapter in self.to_download:
+                for raw_chapter in self.s_downloads:
                     downloads.append(
                         check_server_and_download(session, raw_chapter))
                     downloaded.append(raw_chapter)
@@ -124,10 +125,10 @@ class Manga:
         # this is just a first pass, will not account for missing servers
         for raw_chapter in self.chapters_data:
             if is_english(raw_chapter) and is_new(raw_chapter):
-                self.to_download.append(raw_chapter)
+                self.p_downloads.append(raw_chapter)
                 added.append(raw_chapter['chapter'])
 
-        if not self.to_download:
+        if not self.p_downloads:
             logger.critical(f'nothing to download for {self.title}')
             sys.exit()
 
@@ -140,7 +141,7 @@ class Manga:
         return self.compile_volume_info(downloaded)
 
     def _display_chapters(self):
-        l = [safe_to_int(chap['chapter']) for chap in self.to_download]
+        l = [safe_to_int(chap['chapter']) for chap in self.p_downloads]
         l.sort()
         missing_chaps = find_int_between(l)
         self.missing_chapters: List[str] = [str(_) for _ in missing_chaps]
@@ -157,10 +158,11 @@ class Manga:
 
         selection = self._get_download_range(l)
 
-        self.to_download = [
-            c for c in self.to_download if c['chapter'] in selection]
+        self.s_downloads = [
+            c for c in self.p_downloads if c['chapter'] in selection]
 
-        self._confirm_download()
+        if len(self.s_downloads) < len(self.p_downloads):
+            self._confirm_download()
 
     def _get_download_range(self, chap_nums: List[Union[float, int]]) -> Set[str]:
         s: Set[str] = set()
@@ -203,9 +205,9 @@ class Manga:
         return s
 
     def _confirm_download(self):
-        selected_nums = [safe_to_int(c['chapter']) for c in self.to_download]
+        selected_nums = [safe_to_int(c['chapter']) for c in self.s_downloads]
         print('These chapters will be downloaded:')
-        c_count = len(self.to_download)
+        c_count = len(self.s_downloads)
         pprint.pprint(selected_nums, compact=True,
                       width=min(c_count, 80))
         if c_count > 1:
@@ -214,11 +216,13 @@ class Manga:
         else:
             print(
                 f'Proceed to download {c_count} chapter of {self.title}?')
-        print('[y] - yes    [n] - no')
-        check = input()
-        if check.lower() == 'n':
+        print('[y] - yes    [n] - select again    [q] - quit app')
+        check = input().strip()
+        if check.lower() == 'q':
             logger.info(f'received input \'{check}\' - exiting program')
             sys.exit()
+        elif check.lower() == 'n':
+            return self._display_chapters()
         elif check.lower() == 'y':
             print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
         else:
