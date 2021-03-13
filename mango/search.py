@@ -29,8 +29,9 @@ class Search:
         get_manga_id: Returns manga id for manga_title.
     """
 
-    def __init__(self):
-        self.__login()
+    def __init__(self, login_cookies=None):
+        if not login_cookies:
+            self.__login()
 
     def __login(self) -> None:
         """Tries logging into mangadex. If the login failed, calls
@@ -64,7 +65,8 @@ class Search:
                 f'unable to reach mangadex (╥﹏╥)...got HTTP {p.status_code} status code')
             sys.exit()
 
-    def get_manga_id(self, manga_title: str) -> Optional[str]:
+    @staticmethod
+    def get_manga_id(manga_title: str) -> Optional[str]:
         """Searches mangadex for `manga_title`. Calls sys.exit() 
         if not found. If `manga_title` is found, will print out all 
         search results and prompt user for a choice.

@@ -15,6 +15,7 @@ from .helpers import (get_json, chunk, RateLimitedSession,
 from .chapter import Chapter
 from .config import mango_config
 
+
 import logging
 logger = logging.getLogger(__name__)
 # set up logging prefixes for use in tqdm.tqdm.write
@@ -146,15 +147,23 @@ class Manga:
         missing_chaps = find_int_between(l)
         self.missing_chapters: List[str] = [str(_) for _ in missing_chaps]
         horizontal_rule()
-        print(f'Found {len(l)} chapters for {self.title} \\ (•◡•) /')
+        print(f'Found {len(l)} chapters for {self.title}')
         if len(l) == 1:
             print(f'Chapter {l[0]} can be downloaded.')
         else:
             print(f'    First chapter: {l[0]}')
             print(f'    Last chapter: {l[-1]}')
         if self.missing_chapters:
-            mc = ', '.join(self.missing_chapters)
-            logger.critical(f'these chapter(s) appear to be missing: {mc}')
+            l = len(self.missing_chapters)
+            if l == 1:
+                logger.critical(
+                    f'\033[91m{l} chapter appears to be missing: ch. {self.missing_chapters[0]}\033[0m')
+            else:
+                logger.critical(
+                    f'\033[91m{l} chapters appear to be missing:')
+                pprint.pprint([int(c) for c in self.missing_chapters], compact=True,
+                              width=min(len(self.missing_chapters), 80))
+                print('\033[0m', end='')
 
         selection = self._get_download_range(l)
 
@@ -168,10 +177,10 @@ class Manga:
         s: Set[str] = set()
 
         print('Which chapters to download?')
-        print('You may select a range by using \',\' and \'-\' e.g. this entire string -> 1-10,15,20-33')
+        print('You may select a range by using \',\' and \'-\' e.g. this entire string: 1-10,15,20-33')
         print('↓ or just use one of these options ↓')
         # consider adding more options
-        print('[a] - download all    [q] - quit app')
+        print('[a] - download all    [r] - search for another manga    [q] - quit app')
 
         r = input().strip()
 
@@ -180,6 +189,10 @@ class Manga:
         elif r.lower() == 'q':
             logger.info(f'input {r} - quitting application')
             sys.exit()
+        elif r.lower() == 'r':
+            logger.warning(f'abandoning manga -> {self.title}')
+            from .mango_lite import main
+            main()
 
         pr = parse_range_input(r)
         if pr:
@@ -216,7 +229,8 @@ class Manga:
         else:
             print(
                 f'Proceed to download {c_count} chapter of {self.title}?')
-        print('[y] - yes    [n] - select again    [q] - quit app')
+        print(
+            '[y] - yes    [n] - select again    [r] - search for another manga    [q] - quit app')
         check = input().strip()
         if check.lower() == 'q':
             logger.info(f'received input \'{check}\' - exiting program')
@@ -225,6 +239,11 @@ class Manga:
             return self._display_chapters()
         elif check.lower() == 'y':
             print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
+        elif check.lower() == 'r':
+            logger.warning(f'abandoning manga -> {self.title}')
+            from .mango_lite import main
+            main()
+
         else:
             logger.warning(f'invalid input - {check}')
             return self._confirm_download()

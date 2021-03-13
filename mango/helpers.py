@@ -150,7 +150,6 @@ def find_int_between(c_lst: List[Union[float, int]]) -> List:
             nc = c_lst[i + 1]
             assert nc <= (c + 1)
         except AssertionError as e:
-            # missing chapter
             logger.error(e, exc_info=True)
             logger.info(
                 f'integer value(s) exist between {c} and {nc}')
