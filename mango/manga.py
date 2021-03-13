@@ -131,7 +131,8 @@ class Manga:
 
         if not self.p_downloads:
             logger.critical(f'nothing to download for {self.title}')
-            sys.exit()
+            from .mango_lite import main_lite
+            main_lite()
 
         # prompt user here
         self._display_chapters()
@@ -191,8 +192,8 @@ class Manga:
             sys.exit()
         elif r.lower() == 'r':
             logger.warning(f'abandoning manga -> {self.title}')
-            from .mango_lite import main
-            main()
+            from .mango_lite import main_lite
+            main_lite()
 
         pr = parse_range_input(r)
         if pr:
@@ -241,8 +242,8 @@ class Manga:
             print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
         elif check.lower() == 'r':
             logger.warning(f'abandoning manga -> {self.title}')
-            from .mango_lite import main
-            main()
+            from .mango_lite import main_lite
+            main_lite()
 
         else:
             logger.warning(f'invalid input - {check}')
