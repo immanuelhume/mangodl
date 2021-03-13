@@ -172,5 +172,20 @@ def parse_range_input(astr: str) -> List[Union[float, int]]:
     return m_
 
 
+def prompt_for_int(ceil: int, msg: str) -> int:
+    r = input(msg)
+    try:
+        r_ = int(r)
+    except ValueError:
+        logger.error(f'input was {r} - only digits are accepted')
+        return prompt_for_int(ceil, msg)
+    else:
+        if r_ > ceil or r_ < 0:
+            logger.error(f'input {r} is of range - number must be <= {ceil}')
+            return prompt_for_int(ceil, msg)
+        else:
+            return r_
+
+
 if __name__ == '__main__':
     pass

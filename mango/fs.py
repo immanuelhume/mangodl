@@ -71,7 +71,7 @@ class Fs:
         Arguments:
             chap_map (dict): Dict mapping chapter number to its volume number.
         """
-        logger.info('(っ˘ڡ˘ς) Preparing to compile into volumes...')
+        logger.info('(っ˘ڡ˘ς) preparing to compile into volumes...')
 
         # make a new folder to store compiled volumes
         volumes_path = os.path.join(self.base_path, self.manga_title)

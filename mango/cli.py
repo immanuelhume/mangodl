@@ -19,7 +19,7 @@ from .config import mango_config
 
 import logging
 logger = logging.getLogger(__name__)
-
+print(os.getcwd())
 print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to mango! (◠‿◠✿)')
 
 argparser = argparse.ArgumentParser()

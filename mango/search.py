@@ -5,7 +5,8 @@ import pickle
 import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from .config import mango_config
-from .helpers import horizontal_rule
+from .helpers import horizontal_rule, prompt_for_int
+from .manga import BadMangaError
 
 import logging
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class Search:
                        }
             logger.info(f'attempting login to mangadex as {USERNAME}')
             p = session.post(LOGIN_URL, data=payload, timeout=20)
-            with open('./login-cookies', 'wb') as f:
+            with open('login-cookies', 'wb') as f:
                 pickle.dump(session.cookies, f)
         if p.ok:
             # check if login succeeded
@@ -58,7 +59,7 @@ class Search:
                 logger.info(
                     'you can reset your username and password with the -u and -p flags, or just log in again')
                 from .mango import main
-                return main()
+                main()
             else:
                 logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
         else:
@@ -75,7 +76,7 @@ class Search:
         Returns id for manga selected.
         """
         with requests.Session() as session:
-            with open('./login-cookies', 'rb') as f:
+            with open('login-cookies', 'rb') as f:
                 session.cookies.update(pickle.load(f))
             resp = session.get(SEARCH_URL + manga_title, timeout=20)
         if not resp.ok:
@@ -88,19 +89,19 @@ class Search:
             logger.info(
                 f'got {len(manga_entries)} results for search-string {manga_title} ')
             horizontal_rule()
-            for manga_entry in manga_entries:
+            for i, manga_entry in enumerate(manga_entries):
                 manga_title = manga_entry.find(
                     'a', class_='manga_title').string
                 print(
-                    f'{manga_entries.index(manga_entry)}: {manga_title}')
+                    f'{i}: {manga_title}')
 
             if len(manga_entries) == 1:
                 print(f'↑ {len(manga_entries)} result on mangadex ↑')
             else:
                 print(f'↑ {len(manga_entries)} results on mangadex ↑')
 
-            index = int(
-                input('Enter the index of the manga you want to download: '))
+            index = prompt_for_int(
+                len(manga_entries) - 1, 'Enter the index of the manga you want to download: ')
             link = manga_entries[index].find(
                 'a', class_='manga_title').attrs['href']
             id = link.split('/')[2]
@@ -108,5 +109,4 @@ class Search:
         else:
             logger.critical(
                 f'could not find {manga_title} on mangadex (╯°□°）╯︵ ┻━┻')
-            from .mango_lite import main_lite
-            return main_lite()
+            raise BadMangaError

@@ -29,6 +29,10 @@ CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 API_BASE = mango_config.get_api_base()
 
 
+class BadMangaError(Exception):
+    pass
+
+
 class Manga:
     """Manga objects.
 
@@ -115,7 +119,7 @@ class Manga:
         async def main_download() -> Awaitable:
             downloads = []
             async with aiohttp.ClientSession() as session:
-                session = RateLimitedSession(session, 20, 20)
+                #session = RateLimitedSession(session, 15, 15)
                 for raw_chapter in self.s_downloads:
                     downloads.append(
                         check_server_and_download(session, raw_chapter))
@@ -131,8 +135,7 @@ class Manga:
 
         if not self.p_downloads:
             logger.critical(f'no chapters found for {self.title}')
-            from .mango_lite import main_lite
-            return main_lite()
+            raise BadMangaError
 
         # prompt user here
         self._display_chapters()
@@ -155,13 +158,13 @@ class Manga:
             print(f'    First chapter: {l[0]}')
             print(f'    Last chapter: {l[-1]}')
         if self.missing_chapters:
-            l = len(self.missing_chapters)
-            if l == 1:
+            n = len(self.missing_chapters)
+            if n == 1:
                 logger.critical(
-                    f'\033[91m{l} chapter appears to be missing: ch. {self.missing_chapters[0]}\033[0m')
+                    f'\033[91m{n} chapter appears to be missing: ch. {self.missing_chapters[0]}\033[0m')
             else:
                 logger.critical(
-                    f'\033[91m{l} chapters appear to be missing:')
+                    f'\033[91m{n} chapters appear to be missing:')
                 pprint.pprint([int(c) for c in self.missing_chapters], compact=True,
                               width=min(len(self.missing_chapters), 80))
                 print('\033[0m', end='')
@@ -179,7 +182,7 @@ class Manga:
 
         print('Which chapters to download?')
         print('You may select a range by using \',\' and \'-\' e.g. this entire string: 1-10,15,20-33')
-        print('↓ or just use one of these options ↓')
+        print('    ↓ or just use one of these options ↓')
         # consider adding more options
         print('[a] - download all    [r] - search for another manga    [q] - quit app')
 
@@ -192,9 +195,7 @@ class Manga:
             sys.exit()
         elif r.lower() == 'r':
             logger.warning(f'abandoning manga -> {self.title}')
-            from .mango_lite import main_lite
-            return main_lite()
-
+            raise BadMangaError
         pr = parse_range_input(r)
         if pr:
             for ar in pr:
@@ -242,8 +243,7 @@ class Manga:
             print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
         elif check.lower() == 'r':
             logger.warning(f'abandoning manga -> {self.title}')
-            from .mango_lite import main_lite
-            return main_lite()
+            raise BadMangaError
 
         else:
             logger.warning(f'invalid input - {check}')
