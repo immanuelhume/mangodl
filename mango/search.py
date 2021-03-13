@@ -57,7 +57,8 @@ class Search:
                 logger.info('please check your username and password')
                 logger.info(
                     'you can reset your username and password with the -u and -p flags, or just log in again')
-                sys.exit()
+                from .mango import main
+                return main()
             else:
                 logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
         else:
@@ -105,5 +106,7 @@ class Search:
             id = link.split('/')[2]
             return id
         else:
-            logger.critical(f'could not find {manga_title} (╯°□°）╯︵ ┻━┻')
-            sys.exit()
+            logger.critical(
+                f'could not find {manga_title} on mangadex (╯°□°）╯︵ ┻━┻')
+            from .mango_lite import main_lite
+            return main_lite()

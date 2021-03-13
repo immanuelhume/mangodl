@@ -130,9 +130,9 @@ class Manga:
                 added.append(raw_chapter['chapter'])
 
         if not self.p_downloads:
-            logger.critical(f'nothing to download for {self.title}')
+            logger.critical(f'no chapters found for {self.title}')
             from .mango_lite import main_lite
-            main_lite()
+            return main_lite()
 
         # prompt user here
         self._display_chapters()
@@ -193,7 +193,7 @@ class Manga:
         elif r.lower() == 'r':
             logger.warning(f'abandoning manga -> {self.title}')
             from .mango_lite import main_lite
-            main_lite()
+            return main_lite()
 
         pr = parse_range_input(r)
         if pr:
@@ -243,7 +243,7 @@ class Manga:
         elif check.lower() == 'r':
             logger.warning(f'abandoning manga -> {self.title}')
             from .mango_lite import main_lite
-            main_lite()
+            return main_lite()
 
         else:
             logger.warning(f'invalid input - {check}')
@@ -392,7 +392,3 @@ class Manga:
 
         logger.info('all chapters have been assigned to a volume')
         return chap_to_vol
-
-
-if __name__ == '__main__':
-    pass

@@ -173,5 +173,4 @@ def parse_range_input(astr: str) -> List[Union[float, int]]:
 
 
 if __name__ == '__main__':
-    print(parse_range_input(
-        '1-10,5, 11-20 , 6 , 21 - 30 , 7, 09, 90, 10.5, 100.1-100.2'))
+    pass

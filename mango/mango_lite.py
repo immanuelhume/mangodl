@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def main_lite():
-    logger.info('initiating new search')
     horizontal_rule()
 
     search = Search(login_cookies=True)
