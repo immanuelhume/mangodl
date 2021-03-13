@@ -26,7 +26,7 @@ argparser.add_argument('-m', '--manga', action='store', type=str,
 # root directory for downloads
 argparser.add_argument('-f', '--folder', action='store', type=str,
                        default=mango_config.get_root_dir(),
-                       help='Absolute path download folder.')
+                       help='Absolute path to download folder.')
 # language
 argparser.add_argument('-l', '--language', action='store', type=str,
                        choices=['gb', 'ru', 'it', 'th',

@@ -9,6 +9,7 @@ from aiohttp import ClientSession
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 import math
+import re
 
 import logging
 logger = logging.getLogger(__name__)
@@ -162,5 +163,16 @@ def find_int_between(c_lst: List[Union[float, int]]) -> List:
     return missing
 
 
+def parse_range_input(astr: str) -> List[Union[float, int]]:
+    # num-num e.g. 1-50
+    # num,num e.g. 20,21
+    # ^ some permutation of the above e.g. "1-20, 30-35, 70, 75-80, 2000" D:
+    p = re.compile(r'\d+\.*\d*\s*-?\s*\d*\.*\d*')
+    m = p.findall(astr)
+    m_ = [re.sub(r'\s+', '', _) for _ in m]  # strip all whitespace
+    return m_
+
+
 if __name__ == '__main__':
-    print(find_int_between([1, 6]))
+    print(parse_range_input(
+        '1-10,5, 11-20 , 6 , 21 - 30 , 7, 09, 90, 10.5, 100.1-100.2'))

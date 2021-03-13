@@ -1,12 +1,10 @@
 # TODO how the fuck do i package and interface?
-# TODO CHECK FOR MISSING CHAPTERS!!!
-# TODO print out list of chapters avail first
 # TODO select range for chapter download
 # TODO handle connection and server erros !!!
 # TODO INITIAL LAUNCH - NEEDS TO ASK FOR PASSWORD
 # TODO AUTHENTICATION???
 # TODO handle the other command line args
-# TODO add choice for how many chapters per volume default
+# TODO add choice for how many chapters per volume default, volumize or not
 # TODO CHAPTER NUMBER CAN BE '' APPARENTLY!!!
 # TODO pytest
 
@@ -39,4 +37,5 @@ def main():
 
     manga.print_bad_chapters()
 
-    logger.warning('end of program')
+    logger.warning(
+        f'end of program - see the raw and archived files @ {fs.base_path}')
