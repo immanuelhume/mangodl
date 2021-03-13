@@ -1,5 +1,5 @@
-"""This is the first line of code in the whole app to run. Manages 
-command line args and other required variables.
+"""This is the first line of code to run after logging configs.
+Manages command line args and other required variables.
 
 These CLI arguments are available (all are optional):
 
@@ -16,6 +16,9 @@ Interfaces with config/mango.ini.
 import argparse
 import os
 from .config import mango_config
+
+import logging
+logger = logging.getLogger(__name__)
 
 print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to mango! (◠‿◠✿)')
 
@@ -54,6 +57,7 @@ def check_title():
 
 def check_folder():
     if not ARGS.folder and not mango_config.get_root_dir():
+        logger.warning('download directory not set')
         f = input('Please specify directory to store manga in: ')
         if not os.path.isdir(f):
             print(f'{f} does not exist. Create directory?')
@@ -61,11 +65,13 @@ def check_folder():
             resp = input()
             if resp.lower() == 'y':
                 os.mkdir(f)
+                logger.info(f'created -> {f}')
             elif resp.lower() == 'n':
-                ARGS.check_path()
+                logger.info(f'input \'{resp}\' - enter another path')
+                return check_folder()
             else:
-                print('Invalid input.')
-                ARGS.check_path()
+                logger.error(f'input \'{resp}\' is invalid')
+                return check_folder()
         ARGS.folder = f
         mango_config.set_root_dir(f)
     elif not ARGS.folder:

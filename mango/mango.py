@@ -1,5 +1,4 @@
 # TODO how the fuck do i package and interface?
-# TODO select range for chapter download
 # TODO handle connection and server erros !!!
 # TODO INITIAL LAUNCH - NEEDS TO ASK FOR PASSWORD
 # TODO AUTHENTICATION???

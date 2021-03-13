@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup as bs
 import lxml
+import pickle
 import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from .config import mango_config
@@ -34,26 +35,32 @@ class Search:
     def __login(self) -> None:
         """Tries logging into mangadex. If the login failed, calls
         sys.exit()"""
-        self.session = requests.Session()
-        payload = {'login_username': USERNAME,
-                   'login_password': PASSWORD,
-                   'remember_me': 1
-                   }
-        logger.info(f'attempting login to mangadex as {USERNAME}')
-        p = self.session.post(LOGIN_URL, data=payload, timeout=20)
+        with requests.Session() as session:
+            payload = {'login_username': USERNAME,
+                       'login_password': PASSWORD,
+                       'remember_me': 1
+                       }
+            logger.info(f'attempting login to mangadex as {USERNAME}')
+            p = session.post(LOGIN_URL, data=payload, timeout=20)
+            with open('./login-cookies', 'wb') as f:
+                pickle.dump(session.cookies, f)
         if p.ok:
             # check if login succeeded
             soup = bs(p.text, 'lxml')
             if soup.title.string != 'Home - MangaDex':  # not the best checking
-                logger.warning('login failed (╥﹏╥)')
+                mango_config.set_username('')
+                mango_config.set_password('')
+
+                horizontal_rule()
+                logger.critical(f'login as {USERNAME} failed (╥﹏╥)')
                 logger.info('please check your username and password')
                 logger.info(
-                    'you can reset your username and password with the -u and -p flags')
+                    'you can reset your username and password with the -u and -p flags, or just log in again')
                 sys.exit()
             else:
                 logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
         else:
-            logger.error(
+            logger.critical(
                 f'unable to reach mangadex (╥﹏╥)...got HTTP {p.status_code} status code')
             sys.exit()
 
@@ -64,9 +71,12 @@ class Search:
 
         Returns id for manga selected.
         """
-        resp = self.session.get(SEARCH_URL + manga_title, timeout=20)
+        with requests.Session() as session:
+            with open('./login-cookies', 'rb') as f:
+                session.cookies.update(pickle.load(f))
+            resp = session.get(SEARCH_URL + manga_title, timeout=20)
         if not resp.ok:
-            logger.error(
+            logger.critical(
                 f'got HTTP status code {resp.status_code} (╯°□°）╯︵ ┻━┻')
             sys.exit()
         soup = bs(resp.text, 'lxml')
@@ -93,5 +103,5 @@ class Search:
             id = link.split('/')[2]
             return id
         else:
-            logger.warning(f'Could not find {manga_title} (╯°□°）╯︵ ┻━┻')
+            logger.critical(f'could not find {manga_title} (╯°□°）╯︵ ┻━┻')
             sys.exit()

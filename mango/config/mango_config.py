@@ -1,5 +1,7 @@
 import configparser
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mango_config.ini')
 config = configparser.ConfigParser()
@@ -10,7 +12,7 @@ def get_username() -> str:
     try:
         return config['user info']['username']
     except KeyError:
-        return None
+        pass
 
 
 def set_username(new_username: str):
@@ -25,7 +27,7 @@ def get_password() -> str:
     try:
         return config['user info']['password']
     except KeyError:
-        return None
+        pass
 
 
 def set_password(new_password: str):

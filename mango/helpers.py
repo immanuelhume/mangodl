@@ -96,7 +96,7 @@ def safe_to_int(j: Union[float, str]) -> Union[float, int]:
 
 
 def horizontal_rule(char: str = '=', length: int = 36) -> None:
-    print(f'{char*length}')
+    print(f'\n{char*length}')
 
 
 class RateLimitedSession():
