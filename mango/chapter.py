@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .helpers import safe_mkdir, safe_to_int
 from .config import mango_config
+from .cli import ARGS
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,8 +46,11 @@ class Chapter:
         download: Downloads chapter into folder for raw images.
     """
 
-    def __init__(self, id: Union[str, int]):
-        self.url = API_BASE + f'chapter/{id}'
+    def __init__(self, id: Union[str, int], saver: bool):
+        if saver:
+            self.url = API_BASE + f'chapter/{id}?saver=true'
+        else:
+            self.url = API_BASE + f'chapter/{id}'
         self.id = id
         tqdm.write(
             f'{DEBUG_PREFIX}created Chapter instance for chapter id {id}')

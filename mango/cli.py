@@ -30,21 +30,30 @@ argparser.add_argument('-m', '--manga', action='store', type=str,
 argparser.add_argument('-f', '--folder', action='store', type=str,
                        default=mango_config.get_root_dir(),
                        help='Absolute path to download folder.')
-# language
-argparser.add_argument('-l', '--language', action='store', type=str,
-                       choices=['gb', 'ru', 'it', 'th',
-                                'sa', 'id', 'br', 'tr',
-                                'il', 'es', 'hu', 'ph'],
-                       default='gb', help='Select manga language.')
-# use low quality images
-argparser.add_argument('-s', '--saver', action='store_true',
-                       help='Use low quality images.')
 # username
 argparser.add_argument('-u', '--username', action='store', type=str,
                        help='Mangadex username.')
 # password
 argparser.add_argument('-p', '--password', action='store', type=str,
                        help='Mangadex password.')
+# archive to volumes or not
+argparser.add_argument('--novolume', action='store_false', type=bool,
+                       help='Don\'t automatically compile into volumes.')
+# default chapters per volume
+argparser.add_argument('--vollen', action='store', type=int, default=10,
+                       help='Number of chapters per volume to default to, if mangadex did not assign. This value defaults to 10.')
+# language
+argparser.add_argument('-l', '--language', action='store', type=str,
+                       choices=['gb', 'ru', 'it', 'th',
+                                'sa', 'id', 'br', 'tr',
+                                'il', 'es', 'hu', 'ph'],
+                       default='gb', help='Select manga language. Defaults to english.')
+# use low quality images
+argparser.add_argument('-s', '--saver', action='store_true',
+                       help='Use low quality images.')
+# rate limit
+argparser.add_argument('--ratelimit', action='store', type=int,
+                       help='Limit number of requests per second.')
 
 ARGS = argparser.parse_args()
 

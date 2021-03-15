@@ -72,10 +72,14 @@ class Manga:
         self.missing: List[Union[float, int]] = []
         self.serverless: List[str] = []
 
-    def download_chapters(self, fs: FileSys, lang: str):
+    def download_chapters(self,
+                          fs: FileSys,
+                          lang: str,
+                          saver: bool,
+                          rate_limit: Optional[int],
+                          archive: bool,
+                          vol_len: int):
         """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
-
-        For now, it only downloads english chapters.
 
         Arguments:
             raw_path (str)  : Path to folder for raw images. Must already exist.
@@ -98,7 +102,7 @@ class Manga:
         async def check_server_and_download(session: RateLimitedSession,
                                             raw_ch: Optional[Dict]) -> Awaitable:
             if raw_ch:
-                chapter = Chapter(raw_ch['id'])
+                chapter = Chapter(raw_ch['id'], saver)
                 await chapter.load(session)
                 if chapter.page_links:  # chapter has image server
                     await chapter.download(session, fs.raw_path)
@@ -128,7 +132,9 @@ class Manga:
         async def main_download() -> Awaitable:
             downloads = []
             async with aiohttp.ClientSession() as session:
-                # session = RateLimitedSession(session, 20, 20)
+                if rate_limit:
+                    session = RateLimitedSession(
+                        session, rate_limit, rate_limit)
                 for raw_ch in self.s_downloads:
                     downloads.append(
                         check_server_and_download(session, raw_ch))
@@ -153,7 +159,8 @@ class Manga:
         asyncio.run(main_download())
         logger.info('all chapters downloaded (ᵔᴥᵔ)')
         # ensure every chapter is assigned a volume
-        self._compile_volume_info()
+        if archive:
+            self._compile_volume_info(vol_len)
 
     def _display_chs(self):
         ch_nums = [safe_to_int(chap['chapter']) for chap in self.p_downloads]
@@ -271,7 +278,7 @@ class Manga:
             logger.warning(f'invalid input - {check}')
             return self._confirm_download()
 
-    def _compile_volume_info(self):
+    def _compile_volume_info(self, vol_len: int):
         logger.info('figuring out which chapter belongs to which volume')
         orphans = []
         prelim_map = defaultdict(list)
@@ -333,7 +340,7 @@ class Manga:
                         logger.debug(
                             f'chapter {ch.ch_num} -> volume {new_vol_num}')
 
-        def from_scratch(vol_len=10):
+        def from_scratch(vol_len):
             logger.warning(
                 f'no volume info found - defaulting to {vol_len} chapters per volume')
             for new_vol in chunk(orphans, vol_len):
@@ -356,7 +363,7 @@ class Manga:
             if orphans:
                 extrapolate()
         elif not vol_nums:
-            from_scratch()
+            from_scratch(vol_len)
         else:
             # all chapters already have volumes assigned
             logger.info('all chapters come with volume info')

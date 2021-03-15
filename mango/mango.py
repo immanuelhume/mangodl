@@ -1,14 +1,12 @@
 # TODO how the fuck do i package and interface?
-# TODO handle connection and server erros !!!
-# TODO AUTHENTICATION???
-# TODO handle the other command line args
-# TODO add choice for how many chapters per volume default, volumize or not
+# BUG handle connection and server errors !!!
 # TODO pytest
 # TODO add color to logs
 # BUG apparently some chapters can have no name - just ''
 # TODO pipe to calibre? subprocess?
 # TODO add a timer?
 # TODO PASSWORD ENCRYPTION
+# TODO options for file format
 
 __version__ = "0.1.0"
 
@@ -63,7 +61,12 @@ def next_manga(skip_choice=False):
 
 def proc_download(manga):
     fs = FileSys(manga.title)
-    manga.download_chapters(fs, ARGS.language)
+    manga.download_chapters(fs,
+                            ARGS.language,
+                            ARGS.saver,
+                            ARGS.ratelimit,
+                            ARGS.novolume,
+                            ARGS.vollen)
     fs.create_volumes(manga.downloaded)
     manga.print_bad_chapters()
     logger.info(
