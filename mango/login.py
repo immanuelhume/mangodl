@@ -6,10 +6,12 @@ import sys
 import os
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from .config import mango_config
-from .helpers import horizontal_rule
+from .helpers import horizontal_rule, _Getch
 
 import logging
 logger = logging.getLogger(__name__)
+
+getch = _Getch()
 
 # set up from config
 LOGIN_URL: str = mango_config.get_login_url()
@@ -31,6 +33,17 @@ class Login:
 
     @staticmethod
     def login() -> None:
+
+        def enter_credentials():
+            u = input('Mangadex username: ')
+            p = input('Mangadex password: ')
+            mango_config.set_username(u)
+            mango_config.set_password(p)
+            global USERNAME
+            USERNAME = u
+            global PASSWORD
+            PASSWORD = p
+
         with requests.Session() as session:
             payload = {'login_username': USERNAME,
                        'login_password': PASSWORD,
@@ -55,11 +68,18 @@ class Login:
                 logger.info('please check your username and password')
                 logger.info(
                     'you can reset your username and password with the -u and -p flags, or just log in again')
-                from .mango import main
-                main()
+                print('[l] - login again    [q] - quit application')
+                c = getch()
+                if c.lower() == 'l':
+                    enter_credentials()
+                    return Login.login()
+                elif c.lower() == 'q':
+                    sys.exit()
+                else:
+                    sys.exit()
             else:
                 logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
-                return os.path.abspath('login-cookies')
+                return os.path.abspath('login_cookies')
         else:
             logger.critical(
                 f'unable to reach mangadex (╥﹏╥)...got HTTP {p.status_code} status code')
