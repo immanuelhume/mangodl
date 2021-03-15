@@ -38,7 +38,7 @@ class Login:
                        }
             logger.info(f'attempting login to mangadex as {USERNAME}')
             p = session.post(LOGIN_URL, data=payload, timeout=20)
-            with open('login-cookies', 'wb') as f:
+            with open('login_cookies', 'wb') as f:
                 pickle.dump(session.cookies, f)
         if p.ok:
             # check if login succeeded
