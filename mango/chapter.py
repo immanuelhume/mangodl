@@ -6,7 +6,7 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 import tqdm
 
-from .helpers import safe_mkdir, RateLimitedSession
+from .helpers import safe_mkdir, RateLimitedSession, safe_to_int
 from .config import mango_config
 
 import logging
@@ -59,8 +59,8 @@ class Chapter:
         data = self.data
 
         self.hash = data['hash']
-        self.chapter_num = data['chapter']
-        self.volume_num = data['volume']
+        self.chapter_num = safe_to_int(data['chapter'])
+        self.volume_num = safe_to_int(data['volume'])
 
         tqdm.tqdm.write(
             f'{DEBUG_PREFIX}info loaded for chapter {self.chapter_num} (id {self.id})')

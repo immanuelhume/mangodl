@@ -37,30 +37,6 @@ class Fs:
         self.raw_path = os.path.join(self.base_path, 'raw')
         safe_mkdir(self.raw_path)
 
-    @staticmethod
-    def to_cbz(dir_to_zip: Path, destination: Path) -> None:
-        """Creates .cbz file for folder `dir_to_zip`.
-
-        Arguments:
-            dir_to_zip (str)  : Absolute path to folder to zip.
-            destination (str) : Directory to store the new .cbz file. Should
-                                already exist. 
-        """
-
-        os.chdir(dir_to_zip)
-        archive_name = os.path.split(dir_to_zip)[-1]
-        archive_path = os.path.join(destination, archive_name)
-        shutil.make_archive(base_name=archive_path, format='zip')
-        logger.debug(f'made .zip archive -> {archive_path}')
-
-        new_volume_path = os.path.join(destination, f'{archive_name}.zip')
-        base_name = os.path.splitext(new_volume_path)[0]
-        final_name = base_name + '.cbz'
-        os.rename(new_volume_path, final_name)
-
-        logger.debug(f'{new_volume_path} renamed -> {final_name}')
-        logger.info(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
-
     def create_volumes(self, chap_map: Dict[float, int]) -> None:
         """Archives chapters into respective volumes.
 
@@ -95,6 +71,30 @@ class Fs:
 
             shutil.rmtree(new_name)
             logger.debug(f'{new_name} deleted')
+
+    @staticmethod
+    def to_cbz(dir_to_zip: Path, destination: Path) -> None:
+        """Creates .cbz file for folder `dir_to_zip`.
+
+        Arguments:
+            dir_to_zip (str)  : Absolute path to folder to zip.
+            destination (str) : Directory to store the new .cbz file. Should
+                                already exist. 
+        """
+
+        os.chdir(dir_to_zip)
+        archive_name = os.path.split(dir_to_zip)[-1]
+        archive_path = os.path.join(destination, archive_name)
+        shutil.make_archive(base_name=archive_path, format='zip')
+        logger.debug(f'made .zip archive -> {archive_path}')
+
+        new_volume_path = os.path.join(destination, f'{archive_name}.zip')
+        base_name = os.path.splitext(new_volume_path)[0]
+        final_name = base_name + '.cbz'
+        os.rename(new_volume_path, final_name)
+
+        logger.debug(f'{new_volume_path} renamed -> {final_name}')
+        logger.info(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
 
 
 if __name__ == '__main__':

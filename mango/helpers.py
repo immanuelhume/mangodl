@@ -87,9 +87,7 @@ def safe_mkdir(p: Path) -> None:
 def safe_to_int(j: Union[float, str]) -> Union[float, int]:
     try:
         i = float(j)
-    except ValueError as e:
-        logger.error(e, exc_info=True)
-        logger.error(f'{j} is not a number')
+    except ValueError:
         return j
     else:
         return int(i) if int(i) == i else i
@@ -187,5 +185,50 @@ def prompt_for_int(ceil: int, msg: str) -> int:
             return r_
 
 
+# parse single character from stdin
+# recipe from https://code.activestate.com/recipes/134892/
+class _Getch:
+    """Gets a single character from standard input.  Does not echo to the
+screen."""
+
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self): return self.impl()
+
+
+class _GetchUnix:
+    def __init__(self):
+        import tty
+        import sys
+
+    def __call__(self):
+        import sys
+        import tty
+        import termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+
+
 if __name__ == '__main__':
-    pass
+    getch = _Getch()
+    i = getch()
+    print(i)
