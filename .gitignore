@@ -3,6 +3,6 @@ __pycache__
 .vscode
 experimental
 dealwiththis
-mango-logs
-login-cookies
-mango_logging.ini
+mango_logs
+login_cookies
+mango_config.ini

@@ -5,6 +5,13 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mango_config.ini')
 config = configparser.ConfigParser()
+# initialize a config file
+if not os.path.exists(CONFIG_FILE):
+    config['links']['api_base'] = 'https://api.mangadex.org/v2/'
+    config['links']['search_url'] = 'https://mangadex.org/search?tag_mode_exc=any&tag_mode_inc=all&title='
+    config['links']['login_url'] = 'https://mangadex.org/ajax/actions.ajax.php?function=login&nojs=1'
+    with open(CONFIG_FILE, 'w') as f:
+        config.write(f)
 
 
 def get_username() -> str:

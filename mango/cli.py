@@ -1,4 +1,4 @@
-"""This is the first line of code to run after logging configs.
+"""This is the first line of code to run after logging configuration.
 Manages command line args and other required variables.
 
 These CLI arguments are available (all are optional):

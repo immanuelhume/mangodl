@@ -5,13 +5,10 @@
 # TODO add choice for how many chapters per volume default, volumize or not
 # TODO pytest
 # TODO add color to logs
-# TODO apparently some chapters can have no name - just ''
+# BUG apparently some chapters can have no name - just ''
 # TODO pipe to calibre? subprocess?
-# TODO separate files from download
 # TODO add a timer?
 # TODO PASSWORD ENCRYPTION
-# TODO image names must be pure numbers
-# TODO add tqdm for volumizing
 
 __version__ = "0.1.0"
 

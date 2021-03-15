@@ -357,6 +357,9 @@ class Manga:
                 extrapolate()
         elif not vol_nums:
             from_scratch()
+        else:
+            # all chapters already have volumes assigned
+            logger.info('all chapters come with volume info')
 
         logger.info('all chapters have been assigned to a volume')
 
