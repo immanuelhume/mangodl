@@ -26,10 +26,11 @@ class Search:
         get_manga_id: Returns manga id for manga_title.
     """
 
-    def __init__(self, cookie_file: Path):
-        self.cookie_file = cookie_file
+    def __init__(self):
+        pass
 
-    def get_manga_id(self, manga_title: str) -> Optional[str]:
+    @staticmethod
+    def get_manga_id(manga_title: str, cookie_file: Path) -> Optional[str]:
         """Searches mangadex for `manga_title`. Calls sys.exit() 
         if not found. If `manga_title` is found, will print out all 
         search results and prompt user for a choice.
@@ -37,7 +38,7 @@ class Search:
         Returns id for manga selected.
         """
         with requests.Session() as session:
-            with open(self.cookie_file, 'rb') as f:
+            with open(cookie_file, 'rb') as f:
                 session.cookies.update(pickle.load(f))
             resp = session.get(SEARCH_URL + manga_title, timeout=20)
         if not resp.ok:
@@ -69,4 +70,5 @@ class Search:
         else:
             logger.critical(
                 f'could not find {manga_title} on mangadex (╯°□°）╯︵ ┻━┻')
-            sys.exit()
+            from .mango import next_manga
+            next_manga()

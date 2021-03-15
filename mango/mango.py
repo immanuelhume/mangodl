@@ -22,22 +22,46 @@ from .manga import Manga, BadMangaError
 from .search import Search
 from .login import Login
 from .filesys import FileSys
-from .helpers import horizontal_rule
+from .helpers import horizontal_rule, _Getch
 
 import sys
 import os
 import logging
 logger = logging.getLogger(__name__)
 
+getch = _Getch()
+
+COOKIE_FILE = Login.login()
+
 
 def main():
-    cookie_file = Login.login()
     # search for `ARGS.manga`
-    search = Search(cookie_file)
-    manga_id = search.get_manga_id(ARGS.manga)
+    manga_id = Search.get_manga_id(ARGS.manga, COOKIE_FILE)
     manga = Manga(manga_id)
     # nothing has been downloaded before this point
     proc_download(manga)
+
+    next_manga()
+
+
+def search_another():
+    horizontal_rule()
+    manga_title = input('Search for a manga: ')
+    manga_id = Search.get_manga_id(manga_title, COOKIE_FILE)
+    manga = Manga(manga_id)
+    proc_download(manga)
+
+    next_manga()
+
+
+def next_manga(skip_choice=False):
+    while True:
+        horizontal_rule()
+        next_option()
+        manga_title = input('Search for a manga: ')
+        manga_id = Search.get_manga_id(manga_title, COOKIE_FILE)
+        manga = Manga(manga_id)
+        proc_download(manga)
 
 
 def proc_download(manga):
@@ -49,99 +73,16 @@ def proc_download(manga):
         f'{manga.title} has finished downloading - see the raw and archived files @ {fs.base_path}')
 
 
-'''
-def chk_nxt_act():
-    print('[q] - exit program')
+def next_option():
     print('[a] - download another manga')
-    r = input().strip()
-    if r.lower() == 'q':
+    print('[q] - quit application')
+    r = getch()
+    if r.lower() == 'a':
+        logger.info(f'got input {r} - search for next manga')
+    elif r.lower() == 'q':
         logger.info(f'got input {r} - quitting application')
         sys.exit()
-    elif r.lower() == 'a':
-        logger.info(f'got input {r} - search for next manga')
-        pass
     else:
         # don't accept the input
         logger.warning(f'input \'{r}\' is invalid')
-        return chk_nxt_act()
-
-
-def search_another():
-    horizontal_rule()
-    mt = input('Search for another manga: ')
-    mg = Manga(Search(login_cookies=True).get_manga_id(mt))
-    return mg
-
-
-class StartInterface():
-
-    def __init__(self):
-        self.next_action()
-
-    def next_action(self):
-        print('[q] - exit program')
-        print('[a] - download another manga')
-        r = input().strip()
-        if r.lower() == 'q':
-            logger.info(f'got input {r} - quitting application')
-            sys.exit()
-        elif r.lower() == 'a':
-            logger.info(f'got input {r} - search for next manga')
-            self.search_another()
-        else:
-            # don't accept the input
-            logger.warning(f'input \'{r}\' is invalid')
-            return self.next_action()
-
-    def search_another(self):
-        horizontal_rule()
-        mt = input('Search for another manga: ')
-        self.manga = Manga(Search(login_cookies=True).get_manga_id(mt))
-
-        self.proc_download()
-
-    def proc_download(self):
-        fs = Fs(self.manga.title)
-        chapter_mappings = self.manga.download_chapters(fs.raw_path)
-        fs.create_volumes(chapter_mappings)
-        self.manga.print_bad_chapters()
-        logger.info(
-            f'{self.manga.title} has finished downloading - see the raw and archived files @ {fs.base_path}')
-
-        return self.next_action()
-
-
-def main_lite():
-    horizontal_rule()
-    m = input('Search for a new manga: ')
-    manga = Manga(Search(login_cookies=True).get_manga_id(m))
-    # nothing has been downloaded before this point
-    download_and_exit(manga)
-
-
-def download_and_exit(mg: Manga):
-    fs = Fs(mg.title)
-    chapter_mappings = mg.download_chapters(fs.raw_path)
-    fs.create_volumes(chapter_mappings)
-    mg.print_bad_chapters()
-    logger.info(
-        f'{mg.title} has finished downloading - see the raw and archived files @ {fs.base_path}')
-    sys.exit()
-
-
-def choose_nxt():
-    horizontal_rule()
-    print('[q] - exit program')
-    print('[a] - download another manga')
-    r = input().strip()
-    if r.lower() == 'q':
-        logger.info(f'got input {r} - quitting application')
-        sys.exit()
-    elif r.lower() == 'a':
-        logger.info(f'got input {r} - search for next manga')
-        main_lite()
-    else:
-        # don't accept the input
-        logger.warning(f'input \'{r}\' is invalid')
-        choose_nxt()
-'''
+        return next_option()

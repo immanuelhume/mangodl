@@ -2,7 +2,7 @@ import os
 import asyncio
 import aiohttp
 import aiofiles
-import tqdm
+from tqdm import tqdm
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
@@ -12,7 +12,7 @@ from .config import mango_config
 import logging
 logger = logging.getLogger(__name__)
 
-# set up logging prefixes for use in tqdm.tqdm.write
+# set up logging prefixes for use in tqdm.write
 INFO_PREFIX = f'{__name__} | [INFO]: '
 DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
 WARNING_PREFIX = f'{__name__} | [WARNING]: '
@@ -48,14 +48,14 @@ class Chapter:
     def __init__(self, id: Union[str, int]):
         self.url = API_BASE + f'chapter/{id}'
         self.id = id
-        tqdm.tqdm.write(
+        tqdm.write(
             f'{DEBUG_PREFIX}created Chapter instance for chapter id {id}')
 
     async def load(self, session) -> Awaitable:
         """Sends get request to collect chapter info. Calls `get_page_links`
         at the end."""
 
-        tqdm.tqdm.write(f'{DEBUG_PREFIX}sending GET request to {self.url}')
+        tqdm.write(f'{DEBUG_PREFIX}sending GET request to {self.url}')
 
         async with await session.get(self.url) as resp:
             self.data = await resp.json(content_type=None)
@@ -66,7 +66,7 @@ class Chapter:
         self.ch_num = safe_to_int(data['chapter'])
         self.vol_num = safe_to_int(data['volume'])
 
-        tqdm.tqdm.write(
+        tqdm.write(
             f'{DEBUG_PREFIX}info loaded for chapter {self.ch_num} (id {self.id})')
 
         self._get_page_links()
@@ -78,10 +78,10 @@ class Chapter:
             server_base = self.data['server'] + f'{self.hash}/'
             self.page_links = [server_base +
                                page for page in self.data['pages']]
-            tqdm.tqdm.write(
+            tqdm.write(
                 f'{DEBUG_PREFIX}server OK for chapter {self.ch_num} with {len(self.page_links)} pages')
         except KeyError:
-            tqdm.tqdm.write(
+            tqdm.write(
                 f'{WARNING_PREFIX}no image servers for chapter id {self.id} (chapter {self.ch_num}) - KeyError')
             self.page_links = False
 
@@ -96,11 +96,11 @@ class Chapter:
                                url: str,
                                page_path: Path) -> Awaitable:
             async with await session.get(url) as resp:
-                tqdm.tqdm.write(f'{DEBUG_PREFIX}sending GET request to {url}')
+                tqdm.write(f'{DEBUG_PREFIX}sending GET request to {url}')
                 data = await resp.read()
                 async with aiofiles.open(page_path, 'wb') as out_file:
                     await out_file.write(data)
-                    tqdm.tqdm.write(f'{INFO_PREFIX}saved -> {page_path}')
+                    tqdm.write(f'{INFO_PREFIX}saved -> {page_path}')
 
         async def download_all(session, urls: str) -> Awaitable:
             tasks = []
@@ -108,11 +108,12 @@ class Chapter:
                 page_path = os.path.join(
                     self.ch_path, f'{i+1}.{url.split(".")[-1]}')
                 tasks.append(download_one(session, url, page_path))
-            return [await task for task in tqdm.tqdm(asyncio.as_completed(tasks),
-                                                     total=len(tasks),
-                                                     desc=f'Chapter {self.ch_num}',
-                                                     bar_format='{l_bar}{bar:30}| {n_fmt}/{total_fmt}',
-                                                     leave=False)]
+            return [await task for task in tqdm(asyncio.as_completed(tasks),
+                                                total=len(tasks),
+                                                desc=f'Chapter {self.ch_num}',
+                                                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                                                ncols=80,
+                                                leave=False)]
 
         await download_all(session, self.page_links)
 

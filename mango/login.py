@@ -55,7 +55,8 @@ class Login:
                 logger.info('please check your username and password')
                 logger.info(
                     'you can reset your username and password with the -u and -p flags, or just log in again')
-                sys.exit()
+                from .mango import main
+                main()
             else:
                 logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
                 return os.path.abspath('login-cookies')

@@ -4,7 +4,7 @@ import aiohttp
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable, Set
 import sys
 from pathlib import Path
-import tqdm
+from tqdm import tqdm
 import pprint
 from collections import defaultdict
 
@@ -108,19 +108,19 @@ class Manga:
                     await check_server_and_download(session, find_another(raw_ch))
             else:  # searched all instances of this chapter and still no servers
                 self.serverless.append(raw_ch['chapter'])
-                tqdm.tqdm.write(
+                tqdm.write(
                     f'{CRITICAL_PREFIX}could not find any valid servers for chapter {raw_ch["chapter"]} ಥ_ಥ')
 
         def find_another(bad_ch: Dict) -> Optional[Chapter]:
             # find another instance of the chapter from self.chapter_data
             wanted_num = bad_ch['chapter']
-            tqdm.tqdm.write(
+            tqdm.write(
                 f'{DEBUG_PREFIX}finding another server for chapter {wanted_num}')
             for raw_ch in self.chs_data:
                 num = raw_ch['chapter']
                 ch_id = raw_ch['id']
                 if is_right_lang(raw_ch) and num == wanted_num and ch_id not in bad_chs:
-                    tqdm.tqdm.write(
+                    tqdm.write(
                         f'{DEBUG_PREFIX}found another instance of chapter {wanted_num} (id {raw_ch["id"]})')
                     return raw_ch
             return None  # return None if no other chapter found
@@ -229,7 +229,8 @@ class Manga:
             collect_range_input()
         elif c.lower() == 's':
             logger.warning(f'input {c} - abandoning the manga {self.title}')
-            raise BadMangaError
+            from .mango import search_another
+            search_another()
         elif c.lower() == 'q':
             logger.info(f'input {c} - quitting application')
             sys.exit()
@@ -252,7 +253,7 @@ class Manga:
             print(
                 f'Proceed to download {ch_count} chapter of {self.title}?')
         print(
-            '[y] - yes    [r] - select range again    [s] - search another manga    [q] - quit app')
+            '[y] - yes, download    [r] - select range again    [s] - search another manga    [q] - quit app')
         check = getch()
 
         if check.lower() == 'y':
@@ -261,7 +262,8 @@ class Manga:
             return self._display_chs()
         elif check.lower() == 's':
             logger.warning(f'abandoning manga -> {self.title}')
-            raise BadMangaError
+            from .mango import search_another
+            search_another()
         elif check.lower() == 'q':
             logger.info(f'received input \'{check}\' - exiting program')
             sys.exit()
@@ -364,7 +366,3 @@ class Manga:
             print(
                 'These chapters were not downloaded because no image server could be found: ')
             print(', '.join(self.serverless))
-        if self.missing:
-            print(
-                'These chapters were completely missing from mangadex:')
-            print(', '.join(self.missing))

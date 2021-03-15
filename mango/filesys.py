@@ -3,6 +3,7 @@ import shutil
 from distutils.dir_util import copy_tree
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
+from tqdm import tqdm
 from .config import mango_config
 from .helpers import safe_mkdir
 from .chapter import Chapter
@@ -12,6 +13,13 @@ logger = logging.getLogger(__name__)
 
 # set up from config
 ROOT_DIR: Path = mango_config.get_root_dir()
+
+# set up logging prefixes for use in tqdm.tqdm.write
+INFO_PREFIX = f'{__name__} | [INFO]: '
+DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
+WARNING_PREFIX = f'{__name__} | [WARNING]: '
+ERROR_PREFIX = f'{__name__} | [ERROR]: '
+CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 
 
 class FileSys:
@@ -42,7 +50,7 @@ class FileSys:
     def create_volumes(self, downloaded: List[Chapter]) -> None:
         """Archives chapters into respective volumes.
 
-        Creates a new folder `vols_path` at `base_path`. Volume folders 
+        Creates a new folder `vols_path` at `base_path`. Volume folders
         are created inside `vols_path`. Once zipped, the unzipped folder
         is removed.
 
@@ -55,44 +63,54 @@ class FileSys:
         vols_path = os.path.join(self.base_path, self.manga_title)
         safe_mkdir(vols_path)
 
-        for ch in downloaded:
+        for ch in tqdm(downloaded,
+                       total=len(downloaded),
+                       desc=f'Copying files',
+                       bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                       ncols=80,
+                       leave=False):
             new_ch_path = os.path.join(
                 vols_path, f'{ch.vol_num}', str(ch.ch_num))
             copy_tree(ch.ch_path, new_ch_path)
-            logger.debug(f'copied {ch.ch_path} -> {new_ch_path}')
+            tqdm.write(f'{DEBUG_PREFIX}copied {ch.ch_path} -> {new_ch_path}')
 
-        for vol in os.scandir(vols_path):
+        for vol in tqdm(os.scandir(vols_path),
+                        total=os.listdir(vols_path),
+                        desc=f'Archiving into volumes',
+                        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                        ncols=80,
+                        leave=False):
             old_name = vol.path
             new_name = os.path.join(os.path.split(vol.path)[
-                                    0], f'{self.manga_title}, Vol. {vol.name}')
+                0], f'{self.manga_title}, Vol. {vol.name}')
             os.rename(old_name, new_name)
 
             self.to_cbz(os.path.join(vols_path, new_name), vols_path)
 
             # delete the non-archived folder
             shutil.rmtree(new_name)
-            logger.debug(f'{new_name} deleted')
+            tqdm.write(f'{DEBUG_PREFIX}{new_name} deleted')
 
-    @staticmethod
+    @ staticmethod
     def to_cbz(dir_to_zip: Path, destination: Path) -> None:
         """Creates .cbz file for folder `dir_to_zip`.
 
         Arguments:
             dir_to_zip (str)  : Absolute path to folder to zip.
             destination (str) : Directory to store the new .cbz file. Should
-                                already exist. 
+                                already exist.
         """
 
         os.chdir(dir_to_zip)
         archive_name = os.path.split(dir_to_zip)[-1]
         archive_path = os.path.join(destination, archive_name)
         shutil.make_archive(base_name=archive_path, format='zip')
-        logger.debug(f'made .zip archive -> {archive_path}')
+        tqdm.write(f'{DEBUG_PREFIX}made .zip archive -> {archive_path}')
 
         new_volume_path = os.path.join(destination, f'{archive_name}.zip')
         base_name = os.path.splitext(new_volume_path)[0]
         final_name = base_name + '.cbz'
         os.rename(new_volume_path, final_name)
 
-        logger.debug(f'{new_volume_path} renamed -> {final_name}')
-        logger.info(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
+        tqdm.write(f'{DEBUG_PREFIX}{new_volume_path} renamed -> {final_name}')
+        tqdm.write(f'{INFO_PREFIX}( ^_^）o自  {archive_name} compiled  自o（^_^ )')
