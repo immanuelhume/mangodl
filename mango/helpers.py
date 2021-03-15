@@ -93,8 +93,10 @@ def safe_to_int(j: Union[float, str]) -> Union[float, int]:
         return int(i) if int(i) == i else i
 
 
-def horizontal_rule(char: str = '=', length: int = 36) -> None:
-    print(f'\n{char*length}')
+def horizontal_rule(char: str = '=', length: int = 36, new_line=1) -> None:
+    for _ in range(new_line):
+        print()
+    print(f'{char*length}')
 
 
 class RateLimitedSession():
@@ -229,6 +231,4 @@ class _GetchWindows:
 
 
 if __name__ == '__main__':
-    getch = _Getch()
-    i = getch()
-    print(i)
+    horizontal_rule()

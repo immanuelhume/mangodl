@@ -32,11 +32,11 @@ class FileSys:
 
     def __init__(self, manga_title: str):
         self.manga_title = manga_title
-        # create a base directory in the root folder
         self.base_path = os.path.join(ROOT_DIR, self.manga_title)
-        safe_mkdir(self.base_path)
-        # make directory for raw images
         self.raw_path = os.path.join(self.base_path, 'raw')
+
+    def setup_folders(self):
+        safe_mkdir(self.base_path)
         safe_mkdir(self.raw_path)
 
     def create_volumes(self, downloaded: List[Chapter]) -> None:
@@ -56,7 +56,8 @@ class FileSys:
         safe_mkdir(vols_path)
 
         for ch in downloaded:
-            new_ch_path = os.path.join(vols_path, f'{ch.vol_num}', ch.ch_num)
+            new_ch_path = os.path.join(
+                vols_path, f'{ch.vol_num}', str(ch.ch_num))
             copy_tree(ch.ch_path, new_ch_path)
             logger.debug(f'copied {ch.ch_path} -> {new_ch_path}')
 

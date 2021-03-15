@@ -29,7 +29,6 @@ class Search:
     def __init__(self, cookie_file: Path):
         self.cookie_file = cookie_file
 
-    @staticmethod
     def get_manga_id(self, manga_title: str) -> Optional[str]:
         """Searches mangadex for `manga_title`. Calls sys.exit() 
         if not found. If `manga_title` is found, will print out all 

@@ -8,15 +8,17 @@ import tqdm
 import pprint
 from collections import defaultdict
 
+from .chapter import Chapter
 from .helpers import (get_json, chunk, RateLimitedSession,
                       gather_with_semaphore, safe_to_int, horizontal_rule,
                       find_int_between, parse_range_input, _Getch)
-from .chapter import Chapter
+from .filesys import FileSys
 from .config import mango_config
 
 
 import logging
 logger = logging.getLogger(__name__)
+
 # set up logging prefixes for use in tqdm.tqdm.write
 INFO_PREFIX = f'{__name__} | [INFO]: '
 DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
@@ -70,7 +72,7 @@ class Manga:
         self.missing: List[Union[float, int]] = []
         self.serverless: List[str] = []
 
-    def download_chapters(self, raw_path: Path, lang: str, rate: int):
+    def download_chapters(self, fs: FileSys, lang: str):
         """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
 
         For now, it only downloads english chapters.
@@ -87,25 +89,6 @@ class Manga:
         added: List[str] = []  # chapter numbers staged for download
         bad_chs: List[str] = []  # chapter ids with no server
 
-        # stage chapters for download
-        # this is just a first pass, will not account for missing servers
-        for raw_ch in self.chs_data:
-            if is_right_lang(raw_ch) and is_new(raw_ch):
-                self.p_downloads.append(raw_ch)
-                added.append(raw_ch['chapter'])
-
-        if not self.p_downloads:
-            logger.critical(f'no chapters found for {self.title}')
-            raise BadMangaError
-
-        # prompt user here
-        self._displayer_chs()
-        # download all chapters
-        asyncio.run(main_download())
-        logger.info('all chapters downloaded (ᵔᴥᵔ)')
-        # ensure every chapter is assigned a volume
-        self._compile_volume_info()
-
         def is_right_lang(raw_ch: Dict) -> bool:
             return raw_ch['language'] == lang
 
@@ -118,7 +101,7 @@ class Manga:
                 chapter = Chapter(raw_ch['id'])
                 await chapter.load(session)
                 if chapter.page_links:  # chapter has image server
-                    await chapter.download(session, raw_path)
+                    await chapter.download(session, fs.raw_path)
                     self.downloaded.append(chapter)
                 else:  # chapter has no server - find another
                     bad_chs.append(raw_ch['id'])
@@ -145,13 +128,34 @@ class Manga:
         async def main_download() -> Awaitable:
             downloads = []
             async with aiohttp.ClientSession() as session:
-                # session = RateLimitedSession(session, rate, rate)
+                # session = RateLimitedSession(session, 20, 20)
                 for raw_ch in self.s_downloads:
                     downloads.append(
                         check_server_and_download(session, raw_ch))
                 await gather_with_semaphore(2, *downloads)
 
-    def _displayer_chs(self):
+        # stage chapters for download
+        # this is just a first pass, will not account for missing servers
+        for raw_ch in self.chs_data:
+            if is_right_lang(raw_ch) and is_new(raw_ch):
+                self.p_downloads.append(raw_ch)
+                added.append(raw_ch['chapter'])
+
+        if not self.p_downloads:
+            logger.critical(f'no chapters found for {self.title}')
+            raise BadMangaError
+
+        # prompt user here
+        self._display_chs()
+        # file system stuff here
+        fs.setup_folders()
+        # download all chapters
+        asyncio.run(main_download())
+        logger.info('all chapters downloaded (ᵔᴥᵔ)')
+        # ensure every chapter is assigned a volume
+        self._compile_volume_info()
+
+    def _display_chs(self):
         ch_nums = [safe_to_int(chap['chapter']) for chap in self.p_downloads]
         ch_nums.sort()
         self.missing = find_int_between(ch_nums)
@@ -187,24 +191,6 @@ class Manga:
     def _get_download_range(self, ch_nums: List[Union[float, int]]) -> Set[str]:
         s: Set[str] = set()
 
-        print('Which chapters to download?')
-        # print('    ↓ or just use one of these options ↓')
-        # consider adding more options
-        print('[a] - download all    [r] - select custom range    [s] - search another manga    [q] - quit app')
-        c = getch()
-
-        if c.lower() == 'a':
-            return {str(_) for _ in ch_nums}
-        elif c.lower() == 'r':
-            logger.info(f'input {c} - select custom range')
-            collect_range_input()
-        elif c.lower() == 's':
-            logger.warning(f'input {c} - abandoning the manga {self.title}')
-            raise BadMangaError
-        elif c.lower() == 'q':
-            logger.info(f'input {c} - quitting application')
-            sys.exit()
-
         def collect_range_input():
             r = input('Select a range using \',\' and \'-\': ')
             parsed = parse_range_input(r)
@@ -228,7 +214,28 @@ class Manga:
                     return self._get_download_range(ch_nums)
             else:
                 logger.error(f'invalid input - {r}')
-                return self._get_download_range(ch_nums)
+                return collect_range_input()
+
+        print('Which chapters to download?')
+        # print('    ↓ or just use one of these options ↓')
+        # consider adding more options
+        print('[a] - download all    [r] - select custom range    [s] - search another manga    [q] - quit app')
+        c = getch()
+
+        if c.lower() == 'a':
+            return {str(_) for _ in ch_nums}
+        elif c.lower() == 'r':
+            logger.info(f'input {c} - select custom range')
+            collect_range_input()
+        elif c.lower() == 's':
+            logger.warning(f'input {c} - abandoning the manga {self.title}')
+            raise BadMangaError
+        elif c.lower() == 'q':
+            logger.info(f'input {c} - quitting application')
+            sys.exit()
+        else:
+            logger.error(f'invalid input - {c}')
+            return self._get_download_range(ch_nums)
 
         return s
 
@@ -251,7 +258,7 @@ class Manga:
         if check.lower() == 'y':
             print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
         elif check.lower() == 'r':
-            return self._displayer_chs()
+            return self._display_chs()
         elif check.lower() == 's':
             logger.warning(f'abandoning manga -> {self.title}')
             raise BadMangaError
@@ -264,22 +271,8 @@ class Manga:
 
     def _compile_volume_info(self):
         logger.info('figuring out which chapter belongs to which volume')
-
         orphans = []
         prelim_map = defaultdict(list)
-        for ch in self.downloaded:
-            if ch.volume_num == '':
-                orphans.append(ch)  # passed by reference
-            else:
-                prelim_map[ch.volume_num].append(ch.chapter_num)
-        vol_nums = sorted(prelim_map)
-
-        if orphans and vol_nums:
-            fit_between()
-            if orphans:
-                extrapolate()
-        else:
-            from_scratch()
 
         def fit_between():
             for i, orphan in enumerate(orphans[:]):
@@ -300,12 +293,12 @@ class Manga:
 
                     if lower_bound <= orphan <= upper_bound:
                         # orphaned chapter can be fit into currently existing volume!
-                        orphan.volume_num = vol_num
-                        prelim_map[vol_num].append(orphans.pop(i).chapter_num)
+                        orphan.vol_num = vol_num
+                        prelim_map[vol_num].append(orphans.pop(i).ch_num)
                         prelim_map[vol_num].sort()
                         # ch_to_vol.update({orphan: vol_num})
                         logger.debug(
-                            f'chapter {orphan.chapter_num} -> volume {vol_num}')
+                            f'chapter {orphan.ch_num} -> volume {vol_num}')
 
         def extrapolate():
             # compute average length of volumes detected so far
@@ -325,18 +318,18 @@ class Manga:
                     vol_nums.insert(0, new_vol_num)
                     logger.debug(f'creating volume {new_vol_num}')
                     for ch in new_vol:
-                        ch.volume_num = new_vol_num
+                        ch.vol_num = new_vol_num
                         logger.debug(
-                            f'chapter {ch.chapter_num} -> volume {new_vol_num}')
+                            f'chapter {ch.ch_num} -> volume {new_vol_num}')
             if above:
                 for new_vol in chunk(above, avg_len):
                     new_vol_num = vol_nums[-1] + 1
                     vol_nums.append(new_vol_num)
                     logger.debug(f'creating volume {new_vol_num}')
                     for ch in new_vol:
-                        ch.volume_num = new_vol_num
+                        ch.vol_num = new_vol_num
                         logger.debug(
-                            f'chapter {ch.chapter_num} -> volume {new_vol_num}')
+                            f'chapter {ch.ch_num} -> volume {new_vol_num}')
 
         def from_scratch(vol_len=10):
             logger.warning(
@@ -345,9 +338,23 @@ class Manga:
                 new_vol_num = len(vol_nums) + 1
                 vol_nums.append(new_vol_num)
                 for ch in new_vol:
-                    ch.volume_num = new_vol_num
+                    ch.vol_num = new_vol_num
                     logger.debug(
-                        f'chapter {ch.chapter_num} -> volume {new_vol_num}')
+                        f'chapter {ch.ch_num} -> volume {new_vol_num}')
+
+        for ch in self.downloaded:
+            if ch.vol_num == '':
+                orphans.append(ch)  # passed by reference
+            else:
+                prelim_map[ch.vol_num].append(ch.ch_num)
+        vol_nums = sorted(prelim_map)
+
+        if orphans and vol_nums:
+            fit_between()
+            if orphans:
+                extrapolate()
+        elif not vol_nums:
+            from_scratch()
 
         logger.info('all chapters have been assigned to a volume')
 

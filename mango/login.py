@@ -27,10 +27,10 @@ class Login:
     """
 
     def __init__(self):
-        self.cookie_file = self._login()
+        self.cookie_file = self.login()
 
     @staticmethod
-    def _login() -> None:
+    def login() -> None:
         with requests.Session() as session:
             payload = {'login_username': USERNAME,
                        'login_password': PASSWORD,
