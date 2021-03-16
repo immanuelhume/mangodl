@@ -1,9 +1,16 @@
+# local config stuff
 venv
 __pycache__
+.pytest_cache
 .vscode
+.coverage
+# sdist and build
+build
+dist
+mango_dl.egg-info
+# personal files
 experimental
 dealwiththis
 mango_logs
 login_cookies
 mango_config.ini
-.coverage
