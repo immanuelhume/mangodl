@@ -7,6 +7,7 @@ import pickle
 import sys
 import os
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+from pathlib import Path
 
 from .config import mangodl_config
 from .helpers import horizontal_rule, _Getch
@@ -41,8 +42,10 @@ class Login:
         self.cookie_file = self.login()
 
     @staticmethod
-    def login() -> None:
+    def login() -> Path:
         """Logs into mangadex. Username and password are globals obtained from config file."""
+        cookie_file = os.path.join(os.path.dirname(__file__), 'login_cookies')
+
         def enter_credentials():
             u = input('Mangadex username: ')
             p = input('Mangadex password: ')
@@ -60,7 +63,7 @@ class Login:
                        }
             logger.info(f'attempting login to mangadex as {USERNAME}')
             p = session.post(LOGIN_URL, data=payload, timeout=20)
-            with open('login_cookies', 'wb') as f:
+            with open(cookie_file, 'wb') as f:
                 pickle.dump(session.cookies, f)
         if p.ok:
             # check if login succeeded
@@ -88,7 +91,7 @@ class Login:
                     sys.exit()
             else:
                 logger.info(f'logged in as {USERNAME} ♪~ ᕕ(ᐛ)ᕗ')
-                return os.path.abspath('login_cookies')
+                return cookie_file
         else:
             logger.critical(
                 f'unable to reach mangadex (╥﹏╥)...got HTTP {p.status_code} status code')
