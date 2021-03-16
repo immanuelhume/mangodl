@@ -1,10 +1,17 @@
+"""search.py contains the Search class for handling searching operations."""
+
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from requests.exceptions import RequestException
+from urllib3.exceptions import MaxRetryError
 from bs4 import BeautifulSoup as bs
 import lxml
 import pickle
 import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
+
 from .config import mango_config
 from .helpers import horizontal_rule, prompt_for_int
 
@@ -16,14 +23,17 @@ SEARCH_URL: str = mango_config.get_search_url()
 
 
 class Search:
-    """Search objects are used to login to mangadex and search
-    for the id for a manga.
+    """
+    Search objects are responsible for any searching operations.
 
-    Attributes:
-        cookie_file: Absolute path to pickle file with login cookies.
+    Parameters
+    ----------
+    None
 
-    Instance methods:
-        get_manga_id: Returns manga id for manga_title.
+    Methods
+    -------
+    get_manga_id(manga_title, cookie_file)
+        Search for the manga's id on mangadex.
     """
 
     def __init__(self):
@@ -31,20 +41,36 @@ class Search:
 
     @staticmethod
     def get_manga_id(manga_title: str, cookie_file: Path) -> Optional[str]:
-        """Searches mangadex for `manga_title`. Calls sys.exit() 
-        if not found. If `manga_title` is found, will print out all 
-        search results and prompt user for a choice.
+        """
+        Searches mangadex for a manga, and tries to find the manga's id. Will 
+        display all results and prompt user for a choice.
 
-        Returns id for manga selected.
+        Parameters
+        ----------
+        manga_title : str
+            Title of manga to search.
+        cookie_file : str
+            Absolute path to pickle file containing cookies from last login.
+
+        Returns
+        -------
+        id : str
+            Mangadex id for the manga selected. Will call mango.next_manga() if 
+            none found.
         """
         with requests.Session() as session:
+            retry = Retry(total=10,
+                          status_forcelist=[429, 500, 502, 503, 504],
+                          method_whitelist=["HEAD", "GET", "OPTIONS"],
+                          backoff_factor=1)
+            adapter = HTTPAdapter(max_retries=retry)
+            session.mount('https://mangadex.org/', adapter)
             with open(cookie_file, 'rb') as f:
                 session.cookies.update(pickle.load(f))
-            resp = session.get(SEARCH_URL + manga_title, timeout=20)
-        if not resp.ok:
-            logger.critical(
-                f'got HTTP status code {resp.status_code} (╯°□°）╯︵ ┻━┻')
-            sys.exit()
+            try:
+                resp = session.get(SEARCH_URL + manga_title, timeout=30)
+            except (MaxRetryError, RequestException) as e:
+                logger.error(e, exc_info=True)
         soup = bs(resp.text, 'lxml')
         manga_entries = soup.find_all('div', class_='manga-entry')
         if manga_entries:

@@ -1,16 +1,8 @@
-"""This is the first line of code to run after logging configuration.
+"""
+This is the first line of code to run (after logging configuration).
 Manages command line args and other required variables.
 
-These CLI arguments are available (all are optional):
-
--m : name of manga (str)
--f : absolute path to folder for download (str)
--l : manga language (str)
--s : low quality images (bool)
--u : mangadex username (str)
--p : mangadex password (str)
-
-Interfaces with config/mango.ini.
+Interfaces with config.mango.ini.
 """
 
 import argparse
@@ -19,7 +11,8 @@ from .config import mango_config
 
 import logging
 logger = logging.getLogger(__name__)
-print(os.getcwd())
+
+# welcome line
 print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to mango! (◠‿◠✿)')
 
 argparser = argparse.ArgumentParser()
@@ -37,7 +30,7 @@ argparser.add_argument('-u', '--username', action='store', type=str,
 argparser.add_argument('-p', '--password', action='store', type=str,
                        help='Mangadex password.')
 # archive to volumes or not
-argparser.add_argument('--novolume', action='store_false', type=bool,
+argparser.add_argument('--novolume', action='store_true',
                        help='Don\'t automatically compile into volumes.')
 # default chapters per volume
 argparser.add_argument('--vollen', action='store', type=int, default=10,

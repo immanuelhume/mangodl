@@ -1,3 +1,5 @@
+"""Used for login to mangadex."""
+
 import requests
 from bs4 import BeautifulSoup as bs
 import lxml
@@ -5,6 +7,7 @@ import pickle
 import sys
 import os
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+
 from .config import mango_config
 from .helpers import horizontal_rule, _Getch
 
@@ -20,12 +23,18 @@ PASSWORD: str = mango_config.get_password()
 
 
 class Login:
-    """Tries logging into mangadex and stores cookies as pickle file
-     if successful.
+    """
+    Tries logging into mangadex, and stores cookies as pickle file
+    if successful.
 
-    Attributes:
-        cookie_file : Absolute path to pickle file with cookies
-                      received from login.
+    Parameters
+    ----------
+    None
+
+    Attributes
+    ----------
+    cookie_file : str
+        Absolute path to pickled file containing cookies received from login.
     """
 
     def __init__(self):
@@ -33,7 +42,7 @@ class Login:
 
     @staticmethod
     def login() -> None:
-
+        """Logs into mangadex. Username and password are globals obtained from config file."""
         def enter_credentials():
             u = input('Mangadex username: ')
             p = input('Mangadex password: ')

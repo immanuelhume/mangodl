@@ -3,7 +3,6 @@
 # TODO pytest
 # TODO add color to logs
 # BUG apparently some chapters can have no name - just ''
-# TODO pipe to calibre? subprocess?
 # TODO add a timer?
 # TODO PASSWORD ENCRYPTION
 # TODO options for file format
@@ -51,7 +50,7 @@ def search_another():
 
 def next_manga(skip_choice=False):
     while True:
-        horizontal_rule()
+        horizontal_rule(new_line=0)
         next_option()
         manga_title = input('Search for a manga: ')
         manga_id = Search.get_manga_id(manga_title, COOKIE_FILE)
@@ -67,7 +66,8 @@ def proc_download(manga):
                             ARGS.ratelimit,
                             ARGS.novolume,
                             ARGS.vollen)
-    fs.create_volumes(manga.downloaded)
+    if not ARGS.novolume:
+        fs.create_volumes(manga.downloaded)
     manga.print_bad_chapters()
     logger.info(
         f'{manga.title} has finished downloading - see the raw and archived files @ {fs.base_path}')

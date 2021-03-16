@@ -1,3 +1,8 @@
+"""
+Initializes config file if it doesn't already exist, and 
+defines functions to interface with the config file.
+"""
+
 import configparser
 import os
 import logging
@@ -5,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mango_config.ini')
 config = configparser.ConfigParser()
-# initialize a config file
+# check if config file exists
 if not os.path.exists(CONFIG_FILE):
     config['links'] = {}
     config['links']['api_base'] = 'https://api.mangadex.org/v2/'
@@ -84,7 +89,3 @@ def set_root_dir(p: str):
     config['settings']['root_dir'] = p
     with open(CONFIG_FILE, 'w') as f:
         config.write(f)
-
-
-if __name__ == '__main__':
-    pass

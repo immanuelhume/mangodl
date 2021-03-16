@@ -1,9 +1,12 @@
+"""Contains the FileSys class for file operations."""
+
 import os
 import shutil
 from distutils.dir_util import copy_tree
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 from tqdm import tqdm
+
 from .config import mango_config
 from .helpers import safe_mkdir
 from .chapter import Chapter
@@ -23,19 +26,30 @@ CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 
 
 class FileSys:
-    """FileSys objects handle file system related tasks when downloading
-    manga. Init with root directory and Manga title.
+    """
+    FileSys objects handle file operations when downloading
+    manga.
 
-    Attributes:
-        manga_title (str)   : Title of manga.
-        base_path (str)     : Absolute path to directory where the current
-                              manga is to be downloaded.
-        raw_path (str)      : A folder within `base_path` which holds the raw
-                              image files of each chapter.
+    Parameters
+    ----------
+    manga_title : str
+        Title of manga downloaded. This will be used in naming the directories
+        and files.
 
-    Methods:
-        to_cbz          : Creates a .cbz archive for a folder.
-        create_volumes  : Archives chapters into respective volumes.
+    Attributes
+    ----------
+    base_path : str
+        Absolute path to base directory for this manga. This is inside the 
+        root directory specified by the user and stored as the global `ROOT_DIR`.
+    raw_path : str
+        Folder within `base_path` to contain raw chapters.
+
+    Methods
+    -------
+        create_volumes(downloaded)
+            Archives chapters into respective volumes.
+        to_cbz(dir_to_zip, destination)
+            Creates a .cbz archive for a folder.
     """
 
     def __init__(self, manga_title: str):
@@ -48,14 +62,20 @@ class FileSys:
         safe_mkdir(self.raw_path)
 
     def create_volumes(self, downloaded: List[Chapter]) -> None:
-        """Archives chapters into respective volumes.
+        """
+        Archives chapters into respective volumes.
 
-        Creates a new folder `vols_path` at `base_path`. Volume folders
-        are created inside `vols_path`. Once zipped, the unzipped folder
-        is removed.
+        Creates a new folder inside `self.base_path` and creates archives
+        inside the new folder.
 
-        Arguments:
-            ch_map (dict): Dict mapping chapter number to its volume number.
+        Parameters
+        ----------
+        downloaded : array_like
+            Chapter instances of downloaded chapters.
+
+        Returns
+        -------
+        None
         """
         logger.info('(っ˘ڡ˘ς) preparing to compile into volumes...')
 
@@ -93,14 +113,20 @@ class FileSys:
 
     @ staticmethod
     def to_cbz(dir_to_zip: Path, destination: Path) -> None:
-        """Creates .cbz file for folder `dir_to_zip`.
-
-        Arguments:
-            dir_to_zip (str)  : Absolute path to folder to zip.
-            destination (str) : Directory to store the new .cbz file. Should
-                                already exist.
         """
+        Creates .cbz file.
 
+        Parameters
+        ----------
+        dir_to_zip : str
+            Absolute path to folder which we want to zip.
+        destination : str
+            Where to store the new archive.
+
+        Returns
+        -------
+        None
+        """
         os.chdir(dir_to_zip)
         archive_name = os.path.split(dir_to_zip)[-1]
         archive_path = os.path.join(destination, archive_name)

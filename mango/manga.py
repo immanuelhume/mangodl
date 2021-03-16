@@ -1,15 +1,20 @@
+"""
+This module contains the Manga class, used to represent
+whatever manga is to be downloaded.
+"""
+
 import requests
 import asyncio
 import aiohttp
-from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable, Set
 import sys
+from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable, Set
 from pathlib import Path
+from collections import defaultdict
 from tqdm import tqdm
 import pprint
-from collections import defaultdict
 
 from .chapter import Chapter
-from .helpers import (get_json, chunk, RateLimitedSession,
+from .helpers import (get_json_data, chunk, RateLimitedSession,
                       gather_with_semaphore, safe_to_int, horizontal_rule,
                       find_int_between, parse_range_input, _Getch)
 from .filesys import FileSys
@@ -33,35 +38,40 @@ API_BASE = mango_config.get_api_base()
 getch = _Getch()
 
 
-class BadMangaError(Exception):
-    pass
-
-
 class Manga:
-    """Manga objects. Init manga id. Contains mostly semi-private methods
-    to manage the download process.
+    """
+    Manga objects represent a single manga. Mostly contains attributes
+    to handle the download process.
 
-    Attributes:
-        url (str)           : Url to the api page for this manga.
-        title (str)         : Title of manga.
-        data (dict)         : Data portion of json obtained from api.
-        chs_data (list)     : List containing raw chapter dictionaries.
-        p_downloads (list)  : Chapters which *can be* downloaded.
-        s_downloads (list)  : Chapters which were selected for download by user.
-        missing (list)      : Missing chapters.
-        serverless (list)   : List of chapters w/o image servers.
+    Parameters
+    ----------
+    id : str or int
+        Mangadex id for the manga.
 
-    Methods:
-        download_chapters   : Downloads chapters asynchronously for the manga.
-        print_bad_chapters  : Prints chapters in `missing` and `severless`.
+    Attributes
+    ----------
+    url : str
+    title : str
+    data : dict
+        The 'data' section of JSON string returned by API.
+    chs_data : list
+        Raw chapter dictionaries.
+    p_downloads : list
+        All chapters which can be downloaded.
+    s_downloads : list
+        Chapters selected by user for download.
+    missing : list
+        Chapters missing from mangadex.
+    serverless : list
+        Chapters listed on mangadex but without an image server.
     """
 
     def __init__(self, id: Union[str, int]):
         logger.debug('creating Manga object')
         self.url = API_BASE + f'manga/{id}'
-        self.data = get_json(self.url)
+        self.data = get_json_data(self.url)
 
-        self.chs_data = get_json(self.url + '/chapters')['chapters']
+        self.chs_data = get_json_data(self.url + '/chapters')['chapters']
         self.chs_data.reverse()  # api gives chapters from last to first
 
         self.title = self.data['title']
@@ -77,17 +87,28 @@ class Manga:
                           lang: str,
                           saver: bool,
                           rate_limit: Optional[int],
-                          archive: bool,
+                          no_volume: bool,
                           vol_len: int):
-        """Downloads chapters into `raw_path`. Calls `compile_volume_info` when done.
+        """
+        Saves all chapters into a folder.
 
-        Arguments:
-            raw_path (str)  : Path to folder for raw images. Must already exist.
-            lang (str)      : Language code.
+        Parameters
+        ----------
+        fs : filesys.FileSys instance
+        lang : str
+            Manga language.
+        saver : bool
+            Lower quality images if set to True.
+        rate_limit : int, optional
+            Used to construct a `RateLimitedSession` instance. By default, no limit is placed.
+        no_volume : bool
+            Automatically converts into volume if False.
+        vol_len : int
+            Default length per volume if not provided by mangadex.
 
-        Returns:
-            Dict mapping chapter numbers (float) to their respective volumes (int).
-            This is from calling `compile_volume_info`.
+        Returns
+        -------
+        None
 
         """
         added: List[str] = []  # chapter numbers staged for download
@@ -149,7 +170,8 @@ class Manga:
 
         if not self.p_downloads:
             logger.critical(f'no chapters found for {self.title}')
-            raise BadMangaError
+            from .mango import next_manga
+            next_manga()
 
         # prompt user here
         self._display_chs()
@@ -159,10 +181,12 @@ class Manga:
         asyncio.run(main_download())
         logger.info('all chapters downloaded (ᵔᴥᵔ)')
         # ensure every chapter is assigned a volume
-        if archive:
+        if not no_volume:
             self._compile_volume_info(vol_len)
 
     def _display_chs(self):
+        """Print out some info about the chapters found for user and solicits user input
+        before commencing download."""
         ch_nums = [safe_to_int(chap['chapter']) for chap in self.p_downloads]
         ch_nums.sort()
         self.missing = find_int_between(ch_nums)
@@ -196,6 +220,7 @@ class Manga:
             self._confirm_download()
 
     def _get_download_range(self, ch_nums: List[Union[float, int]]) -> Set[str]:
+        """Prompts user to select a range of chapters to download."""
         s: Set[str] = set()
 
         def collect_range_input():
@@ -278,7 +303,9 @@ class Manga:
             logger.warning(f'invalid input - {check}')
             return self._confirm_download()
 
-    def _compile_volume_info(self, vol_len: int):
+    def _compile_volume_info(self, vol_len: int) -> None:
+        """Assigns a volume number to all downloaded mangas via their 
+        respective Chapter instances."""
         logger.info('figuring out which chapter belongs to which volume')
         orphans = []
         prelim_map = defaultdict(list)
@@ -371,6 +398,7 @@ class Manga:
         logger.info('all chapters have been assigned to a volume')
 
     def print_bad_chapters(self):
+        """Prints all chapters for which no server was found."""
         if self.serverless:
             horizontal_rule()
             print(
