@@ -8,6 +8,12 @@ __pycache__
 .coverage
 requirements.txt
 #
+# dist and builds
+#
+dist
+built
+mangodl.egg-info
+#
 # personal files
 #
 experimental
