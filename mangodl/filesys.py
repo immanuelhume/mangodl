@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 ROOT_DIR: Path = mangodl_config.get_root_dir()
 
 # set up logging prefixes for use in tqdm.tqdm.write
-INFO_PREFIX = f'{__name__} | [INFO]: '
-DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
 WARNING_PREFIX = f'{__name__} | [WARNING]: '
 ERROR_PREFIX = f'{__name__} | [ERROR]: '
 CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
@@ -92,7 +90,7 @@ class FileSys:
             new_ch_path = os.path.join(
                 vols_path, f'{ch.vol_num}', str(ch.ch_num))
             copy_tree(ch.ch_path, new_ch_path)
-            tqdm.write(f'{DEBUG_PREFIX}copied {ch.ch_path} -> {new_ch_path}')
+            tqdm.write(f'copied {ch.ch_path} -> {new_ch_path}')
 
         for vol in tqdm(os.scandir(vols_path),
                         total=len(os.listdir(vols_path)),
@@ -109,7 +107,7 @@ class FileSys:
 
             # delete the non-archived folder
             shutil.rmtree(new_name)
-            tqdm.write(f'{DEBUG_PREFIX}{new_name} deleted')
+            tqdm.write(f'{new_name} deleted')
 
     @ staticmethod
     def to_cbz(dir_to_zip: Path, destination: Path) -> None:
@@ -131,12 +129,12 @@ class FileSys:
         archive_name = os.path.split(dir_to_zip)[-1]
         archive_path = os.path.join(destination, archive_name)
         shutil.make_archive(base_name=archive_path, format='zip')
-        tqdm.write(f'{DEBUG_PREFIX}made .zip archive -> {archive_path}')
+        tqdm.write(f'created .zip archive -> {archive_path}')
 
         new_volume_path = os.path.join(destination, f'{archive_name}.zip')
         base_name = os.path.splitext(new_volume_path)[0]
         final_name = base_name + '.cbz'
         os.rename(new_volume_path, final_name)
 
-        tqdm.write(f'{DEBUG_PREFIX}{new_volume_path} renamed -> {final_name}')
-        tqdm.write(f'{INFO_PREFIX}( ^_^）o自  {archive_name} compiled  自o（^_^ )')
+        tqdm.write(f'{new_volume_path} renamed -> {final_name}')
+        tqdm.write(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')

@@ -25,8 +25,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 # set up logging prefixes for use in tqdm.tqdm.write
-INFO_PREFIX = f'{__name__} | [INFO]: '
-DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
 WARNING_PREFIX = f'{__name__} | [WARNING]: '
 ERROR_PREFIX = f'{__name__} | [ERROR]: '
 CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
@@ -139,14 +137,13 @@ class Manga:
         def find_another(bad_ch: Dict) -> Optional[Chapter]:
             # find another instance of the chapter from self.chapter_data
             wanted_num = bad_ch['chapter']
-            tqdm.write(
-                f'{DEBUG_PREFIX}finding another server for chapter {wanted_num}')
+            tqdm.write(f'finding another server for chapter {wanted_num}')
             for raw_ch in self.chs_data:
                 num = raw_ch['chapter']
                 ch_id = raw_ch['id']
                 if is_right_lang(raw_ch) and num == wanted_num and ch_id not in bad_chs:
                     tqdm.write(
-                        f'{DEBUG_PREFIX}found another instance of chapter {wanted_num} (id {raw_ch["id"]})')
+                        f'found another instance of chapter {wanted_num} (id {raw_ch["id"]})')
                     return raw_ch
             return None  # return None if no other chapter found
 

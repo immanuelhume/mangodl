@@ -17,8 +17,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 # set up logging prefixes for use in tqdm.write
-INFO_PREFIX = f'{__name__} | [INFO]: '
-DEBUG_PREFIX = f'{__name__} | [DEBUG]: '
 WARNING_PREFIX = f'{__name__} | [WARNING]: '
 ERROR_PREFIX = f'{__name__} | [ERROR]: '
 CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
@@ -57,13 +55,11 @@ class Chapter:
         else:
             self.url = API_BASE + f'chapter/{id}'
         self.id = id
-        tqdm.write(
-            f'{DEBUG_PREFIX}created Chapter instance for chapter id {id}')
 
     async def load(self, session) -> Awaitable:
         """Sends GET request to collect chapter info. Compiles page links at the end."""
 
-        tqdm.write(f'{DEBUG_PREFIX}sending GET request to {self.url}')
+        tqdm.write(f'sending GET request to {self.url}')
 
         async with await session.get(self.url) as resp:
             self.data = await resp.json(content_type=None)
@@ -74,8 +70,7 @@ class Chapter:
         self.ch_num = safe_to_int(data['chapter'])
         self.vol_num = safe_to_int(data['volume'])
 
-        tqdm.write(
-            f'{DEBUG_PREFIX}info loaded for chapter {self.ch_num} (id {self.id})')
+        tqdm.write(f'info loaded for chapter {self.ch_num} (id {self.id})')
 
         self._get_page_links()
 
@@ -89,7 +84,7 @@ class Chapter:
             self.page_links = [server_base +
                                page for page in self.data['pages']]
             tqdm.write(
-                f'{DEBUG_PREFIX}server OK for chapter {self.ch_num} with {len(self.page_links)} pages')
+                f'server OK for chapter {self.ch_num} with {len(self.page_links)} pages')
         except KeyError:
             tqdm.write(
                 f'{WARNING_PREFIX}no image servers for chapter id {self.id} (chapter {self.ch_num}) - KeyError')
@@ -108,11 +103,10 @@ class Chapter:
                                page_path: Path) -> Awaitable:
             try:
                 async with await session.get(url) as resp:
-                    tqdm.write(f'{DEBUG_PREFIX}sending GET request to {url}')
                     data = await resp.read()
                     async with aiofiles.open(page_path, 'wb') as out_file:
                         await out_file.write(data)
-                        tqdm.write(f'{INFO_PREFIX}saved -> {page_path}')
+                        tqdm.write(f'saved -> {page_path}')
             except (ServerDisconnectedError, ClientPayloadError, ClientConnectorError) as e:
                 tqdm.write(f'{ERROR_PREFIX}{repr(e)}')
                 return download_one(session, url, page_path)
