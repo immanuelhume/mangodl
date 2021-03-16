@@ -95,7 +95,7 @@ class FileSys:
             tqdm.write(f'{DEBUG_PREFIX}copied {ch.ch_path} -> {new_ch_path}')
 
         for vol in tqdm(os.scandir(vols_path),
-                        total=os.listdir(vols_path),
+                        total=len(os.listdir(vols_path)),
                         desc=f'Archiving into volumes',
                         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
                         ncols=80,
