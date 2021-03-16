@@ -7,7 +7,7 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 from tqdm import tqdm
 
-from .config import mango_config
+from .config import mangodl_config
 from .helpers import safe_mkdir
 from .chapter import Chapter
 
@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # set up from config
-ROOT_DIR: Path = mango_config.get_root_dir()
+ROOT_DIR: Path = mangodl_config.get_root_dir()
 
 # set up logging prefixes for use in tqdm.tqdm.write
 INFO_PREFIX = f'{__name__} | [INFO]: '

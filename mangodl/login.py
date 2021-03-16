@@ -8,7 +8,7 @@ import sys
 import os
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 
-from .config import mango_config
+from .config import mangodl_config
 from .helpers import horizontal_rule, _Getch
 
 import logging
@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 getch = _Getch()
 
 # set up from config
-LOGIN_URL: str = mango_config.get_login_url()
-USERNAME: str = mango_config.get_username()
-PASSWORD: str = mango_config.get_password()
+LOGIN_URL: str = mangodl_config.get_login_url()
+USERNAME: str = mangodl_config.get_username()
+PASSWORD: str = mangodl_config.get_password()
 
 
 class Login:
@@ -46,8 +46,8 @@ class Login:
         def enter_credentials():
             u = input('Mangadex username: ')
             p = input('Mangadex password: ')
-            mango_config.set_username(u)
-            mango_config.set_password(p)
+            mangodl_config.set_username(u)
+            mangodl_config.set_password(p)
             global USERNAME
             USERNAME = u
             global PASSWORD
@@ -69,8 +69,8 @@ class Login:
                 # this means login failed
 
                 # reset username and password in config
-                mango_config.set_username('')
-                mango_config.set_password('')
+                mangodl_config.set_username('')
+                mangodl_config.set_password('')
 
                 horizontal_rule()
                 logger.critical(f'login as {USERNAME} failed (╥﹏╥)')

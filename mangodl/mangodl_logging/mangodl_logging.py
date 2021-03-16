@@ -3,4 +3,4 @@ import os
 import logging
 import logging.config
 logging.config.fileConfig(os.path.join(
-    os.path.dirname(__file__), 'mango_logging.ini'))
+    os.path.dirname(__file__), 'mangodl_logging.ini'))

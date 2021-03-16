@@ -1,4 +1,4 @@
-"""helpers.py contains helper functions and classes for use in the mango app."""
+"""helpers.py contains helper functions and classes for use in the mangodl app."""
 
 import os
 import sys
@@ -18,8 +18,8 @@ from itertools import zip_longest
 import asyncio
 from aiohttp import ClientSession
 
-from .config import mango_config
-API_BASE = mango_config.get_api_base()
+from .config import mangodl_config
+API_BASE = mangodl_config.get_api_base()
 
 import logging
 logger = logging.getLogger(__name__)

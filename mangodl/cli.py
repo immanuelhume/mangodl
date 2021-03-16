@@ -2,18 +2,18 @@
 This is the first line of code to run (after logging configuration).
 Manages command line args and other required variables.
 
-Interfaces with config.mango.ini.
+Interfaces with config.mangodl.ini.
 """
 
 import argparse
 import os
-from .config import mango_config
+from .config import mangodl_config
 
 import logging
 logger = logging.getLogger(__name__)
 
 # welcome line
-print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to mango! (◠‿◠✿)')
+print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to Mango Downloads! (◠‿◠✿)')
 
 argparser = argparse.ArgumentParser()
 # manga title
@@ -21,7 +21,7 @@ argparser.add_argument('-m', '--manga', action='store', type=str,
                        help='Name of the manga to download.')
 # root directory for downloads
 argparser.add_argument('-f', '--folder', action='store', type=str,
-                       default=mango_config.get_root_dir(),
+                       default=mangodl_config.get_root_dir(),
                        help='Absolute path to download folder.')
 # username
 argparser.add_argument('-u', '--username', action='store', type=str,
@@ -58,9 +58,9 @@ def check_title():
 
 
 def check_folder():
-    if not ARGS.folder and not mango_config.get_root_dir():
+    if not ARGS.folder and not mangodl_config.get_root_dir():
         logger.warning('download directory not set')
-        f = input('Please specify directory to store manga in: ')
+        f = input('Please specify a directory to store manga in (absolute path): ')
         if not os.path.isdir(f):
             print(f'{f} does not exist. Create directory?')
             print('[y] - yes    [n] - no')
@@ -75,31 +75,31 @@ def check_folder():
                 logger.error(f'input \'{resp}\' is invalid')
                 return check_folder()
         ARGS.folder = f
-        mango_config.set_root_dir(f)
+        mangodl_config.set_root_dir(f)
     elif not ARGS.folder:
-        ARGS.folder = mango_config.get_root_dir()
+        ARGS.folder = mangodl_config.get_root_dir()
     else:
-        mango_config.set_root_dir(ARGS.folder)
+        mangodl_config.set_root_dir(ARGS.folder)
 
 
 def check_username():
-    if not ARGS.username and not mango_config.get_username():
+    if not ARGS.username and not mangodl_config.get_username():
         u = input('Mangadex username: ')
-        mango_config.set_username(u)
+        mangodl_config.set_username(u)
     elif not ARGS.username:
-        ARGS.username = mango_config.get_username()
+        ARGS.username = mangodl_config.get_username()
     else:
-        mango_config.set_username(ARGS.username)
+        mangodl_config.set_username(ARGS.username)
 
 
 def check_password():
-    if not ARGS.password and not mango_config.get_password():
+    if not ARGS.password and not mangodl_config.get_password():
         u = input('Mangadex password: ')
-        mango_config.set_password(u)
+        mangodl_config.set_password(u)
     elif not ARGS.password:
-        ARGS.password = mango_config.get_password()
+        ARGS.password = mangodl_config.get_password()
     else:
-        mango_config.set_password(ARGS.password)
+        mangodl_config.set_password(ARGS.password)
 
 
 # run checks

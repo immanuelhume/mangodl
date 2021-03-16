@@ -8,7 +8,7 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mango_config.ini')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mangodl_config.ini')
 config = configparser.ConfigParser()
 # check if config file exists
 if not os.path.exists(CONFIG_FILE):

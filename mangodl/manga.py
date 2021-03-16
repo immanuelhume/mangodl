@@ -18,7 +18,7 @@ from .helpers import (get_json_data, chunk, RateLimitedSession,
                       gather_with_semaphore, safe_to_int, horizontal_rule,
                       find_int_between, parse_range_input, _Getch)
 from .filesys import FileSys
-from .config import mango_config
+from .config import mangodl_config
 
 
 import logging
@@ -32,7 +32,7 @@ ERROR_PREFIX = f'{__name__} | [ERROR]: '
 CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 
 # load from config
-API_BASE = mango_config.get_api_base()
+API_BASE = mangodl_config.get_api_base()
 
 # create getch instance
 getch = _Getch()
@@ -170,7 +170,7 @@ class Manga:
 
         if not self.p_downloads:
             logger.critical(f'no chapters found for {self.title}')
-            from .mango import next_manga
+            from .mangodl import next_manga
             next_manga()
 
         # prompt user here
@@ -261,7 +261,7 @@ class Manga:
             collect_range_input()
         elif c.lower() == 's':
             logger.warning(f'input {c} - abandoning the manga {self.title}')
-            from .mango import search_another
+            from .mangodl import search_another
             search_another()
         elif c.lower() == 'q':
             logger.info(f'input {c} - quitting application')
@@ -294,7 +294,7 @@ class Manga:
             return self._display_chs()
         elif check.lower() == 's':
             logger.warning(f'abandoning manga -> {self.title}')
-            from .mango import search_another
+            from .mangodl import search_another
             search_another()
         elif check.lower() == 'q':
             logger.info(f'received input \'{check}\' - exiting program')

@@ -12,14 +12,14 @@ import sys
 from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
-from .config import mango_config
+from .config import mangodl_config
 from .helpers import horizontal_rule, prompt_for_int
 
 import logging
 logger = logging.getLogger(__name__)
 
 # set up from config
-SEARCH_URL: str = mango_config.get_search_url()
+SEARCH_URL: str = mangodl_config.get_search_url()
 
 
 class Search:
@@ -55,7 +55,7 @@ class Search:
         Returns
         -------
         id : str
-            Mangadex id for the manga selected. Will call mango.next_manga() if 
+            Mangadex id for the manga selected. Will call mangodl.next_manga() if 
             none found.
         """
         with requests.Session() as session:
@@ -96,5 +96,5 @@ class Search:
         else:
             logger.critical(
                 f'could not find {manga_title} on mangadex (╯°□°）╯︵ ┻━┻')
-            from .mango import next_manga
+            from .mangodl import next_manga
             next_manga()

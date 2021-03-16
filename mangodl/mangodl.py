@@ -7,7 +7,7 @@
 # TODO encrypt login info?
 # TODO options for file format?
 
-from .mango_logging import mango_logging
+from .mangodl_logging import mangodl_logging
 from .cli import ARGS
 
 from .manga import Manga

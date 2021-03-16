@@ -10,7 +10,7 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
 from .helpers import safe_mkdir, safe_to_int
-from .config import mango_config
+from .config import mangodl_config
 from .cli import ARGS
 
 import logging
@@ -23,7 +23,7 @@ WARNING_PREFIX = f'{__name__} | [WARNING]: '
 ERROR_PREFIX = f'{__name__} | [ERROR]: '
 CRITICAL_PREFIX = f'{__name__} | [CRITICAL]: '
 
-API_BASE = mango_config.get_api_base()
+API_BASE = mangodl_config.get_api_base()
 
 
 class Chapter:
