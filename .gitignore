@@ -11,7 +11,7 @@ requirements.txt
 # dist and builds
 #
 dist
-built
+build
 mangodl.egg-info
 #
 # personal files
