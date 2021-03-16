@@ -224,7 +224,7 @@ class Manga:
         s: Set[str] = set()
 
         def collect_range_input():
-            r = input('Select a range using \',\' and \'-\': ')
+            r = input('Specify a range: ')
             parsed = parse_range_input(r)
             if parsed:
                 for sect in parsed:
