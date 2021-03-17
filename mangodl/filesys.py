@@ -88,7 +88,7 @@ class FileSys:
                        ncols=80,
                        leave=False):
             new_ch_path = os.path.join(
-                vols_path, f'{ch.vol_num}', str(ch.ch_num))
+                vols_path, f'{ch.vol_num}', f'{ch.ch_num}')
             copy_tree(ch.ch_path, new_ch_path)
             tqdm.write(f'copied {ch.ch_path} -> {new_ch_path}')
 

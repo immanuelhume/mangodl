@@ -6,6 +6,8 @@
 # TODO add a timer?
 # TODO encrypt login info?
 # TODO options for file format?
+# TODO force one-line download
+# TODO option to not log in
 
 from .mangodl_logging import mangodl_logging
 from .cli import ARGS

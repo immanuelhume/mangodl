@@ -15,38 +15,65 @@ logger = logging.getLogger(__name__)
 # welcome line
 print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to Mango Downloads! (◠‿◠✿)')
 
-argparser = argparse.ArgumentParser()
+_desc = """
+        Download manga from the command line through the mangadex API. 
+
+        The default behavior is to login to mangadex and search for a 
+        manga. Your credentials are stored locally in a config file, so
+        you only need to login once.
+
+        If you wish to suppress this, run mangodl --url <url_to_manga> 
+        to download directly without login.
+
+        All arguments are optional - the app will prompt you for 
+        anything it needs but doesn't have.
+        """
+
+argparser = argparse.ArgumentParser(prog='mangodl',
+                                    usage='%(prog)s [options]',
+                                    description=_desc,
+                                    formatter_class=argparse.RawTextHelpFormatter)
+#
 # manga title
-argparser.add_argument('-m', '--manga', action='store', type=str,
-                       help='Name of the manga to download.')
+argparser.add_argument('-m', '--manga', metavar='MANGA', action='store', type=str,
+                       help='name of the manga to download')
+#
 # root directory for downloads
-argparser.add_argument('-f', '--folder', action='store', type=str,
+argparser.add_argument('-f', '--folder', metavar='DOWNLOAD_DIRECTORY', action='store', type=str,
                        default=mangodl_config.get_root_dir(),
-                       help='Absolute path to download folder.')
+                       help='absolute path to download folder')
+#
 # username
-argparser.add_argument('-u', '--username', action='store', type=str,
-                       help='Mangadex username.')
+argparser.add_argument('-u', '--username', metavar='USERNAME', action='store', type=str,
+                       help='mangadex username')
+#
 # password
-argparser.add_argument('-p', '--password', action='store', type=str,
-                       help='Mangadex password.')
+argparser.add_argument('-p', '--password', metavar='PASSWORD', action='store', type=str,
+                       help='mangadex password')
+#
 # archive to volumes or not
 argparser.add_argument('--novolume', action='store_true',
-                       help='Don\'t automatically compile into volumes.')
+                       help='don\'t automatically compile into volumes')
+#
 # default chapters per volume
-argparser.add_argument('--vollen', action='store', type=int, default=10,
-                       help='Number of chapters per volume to default to, if mangadex did not assign. This value defaults to 10.')
+argparser.add_argument('--vollen', metavar='VOLUME_LENGTH', action='store', type=int, default=10,
+                       help='number of chapters per volume to default to, if mangadex did not assign (defaults to %(default)s)')
+#
 # language
-argparser.add_argument('-l', '--language', action='store', type=str,
-                       choices=['gb', 'ru', 'it', 'th',
-                                'sa', 'id', 'br', 'tr',
-                                'il', 'es', 'hu', 'ph'],
-                       default='gb', help='Select manga language. Defaults to english.')
+argparser.add_argument('-l', '--language', metavar='LANGUAGE', action='store', type=str,
+                       default='gb', help='select manga language (defaults to english)')
+#
 # use low quality images
 argparser.add_argument('-s', '--saver', action='store_true',
-                       help='Use low quality images.')
+                       help='use low quality images')
+#
 # rate limit
-argparser.add_argument('--ratelimit', action='store', type=int,
-                       help='Limit number of requests per second.')
+argparser.add_argument('--ratelimit', metavar='LIMIT', action='store', type=int,
+                       help='limit number of requests per second')
+#
+# download by url
+argparser.add_argument('--url', metavar='URL', action='store', type=str,
+                       help='url to the manga on mangadex - using this will download directly without logging into mangadex')
 
 ARGS = argparser.parse_args()
 

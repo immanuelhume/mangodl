@@ -41,8 +41,9 @@ class Chapter:
     id : str or int
     url : str
     hash : str
-    ch_num : str
-    vol_num : str
+    ch_num : str or int or float
+    vol_num : str or int or float
+    ch_title : str
     page_links : list
         Image URLs for each page.
     ch_path : str
@@ -69,6 +70,7 @@ class Chapter:
         self.hash = data['hash']
         self.ch_num = safe_to_int(data['chapter'])
         self.vol_num = safe_to_int(data['volume'])
+        self.ch_title = data['title']
 
         tqdm.write(f'info loaded for chapter {self.ch_num} (id {self.id})')
 
@@ -95,7 +97,8 @@ class Chapter:
         Creates a folder for this chapter inside `raw_path` and saves
         all images into the new folder.
         """
-        self.ch_path = os.path.join(raw_path, str(self.ch_num))
+        folder_name = f'ch {self.ch_num} - {self.ch_title}' if self.ch_title else f'ch {self.ch_num}'
+        self.ch_path = os.path.join(raw_path, folder_name)
         safe_mkdir(self.ch_path)
 
         async def download_one(session,
