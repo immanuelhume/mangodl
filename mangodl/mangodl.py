@@ -6,6 +6,7 @@
 # TODO add a timer?
 # TODO encrypt login info?
 # TODO options for file format?
+# TODO automatically search another site
 
 from .mangodl_logging import mangodl_logging
 from .cli import ARGS

@@ -353,9 +353,22 @@ class Manga:
         respective Chapter instances."""
         logger.info('figuring out which chapter belongs to which volume')
         #
+        # we will get a list of downloaded chapters from self.downloaded
         # these will help us keep track of chapters and volumes
+        unknowns = []
         orphans = []
         prelim_map = defaultdict(list)
+
+        for ch in self.downloaded:
+            if ch.ch_num == '':
+                # bad news! a chapter without a chapter number
+                logger.warning(f'chapter id {ch.id} has no chapter number')
+                unknowns.append(ch)
+            elif ch.vol_num == '':
+                orphans.append(ch)  # passed by reference
+            else:
+                prelim_map[ch.vol_num].append(ch.ch_num)
+        vol_nums = sorted(prelim_map)
 
         def fit_between():
             for i, orphan in enumerate(orphans[:]):
@@ -401,6 +414,7 @@ class Manga:
                     vol_nums.insert(0, new_vol_num)
                     logger.debug(f'creating volume {new_vol_num}')
                     for ch in new_vol:
+                        prelim_map[new_vol_num].append(ch.ch_num)
                         ch.vol_num = new_vol_num
                         logger.debug(
                             f'chapter {ch.ch_num} -> volume {new_vol_num}')
@@ -410,6 +424,7 @@ class Manga:
                     vol_nums.append(new_vol_num)
                     logger.debug(f'creating volume {new_vol_num}')
                     for ch in new_vol:
+                        prelim_map[new_vol_num].append(ch.ch_num)
                         ch.vol_num = new_vol_num
                         logger.debug(
                             f'chapter {ch.ch_num} -> volume {new_vol_num}')
@@ -419,18 +434,13 @@ class Manga:
                 f'no volume info found - defaulting to {vol_len} chapters per volume')
             for new_vol in chunk(orphans, vol_len):
                 new_vol_num = len(vol_nums) + 1
+                logger.info(f'creating new volume - vol. {new_vol_num}')
                 vol_nums.append(new_vol_num)
                 for ch in new_vol:
+                    prelim_map[new_vol_num].append(ch.ch_num)
                     ch.vol_num = new_vol_num
                     logger.debug(
                         f'chapter {ch.ch_num} -> volume {new_vol_num}')
-
-        for ch in self.downloaded:
-            if ch.vol_num == '':
-                orphans.append(ch)  # passed by reference
-            else:
-                prelim_map[ch.vol_num].append(ch.ch_num)
-        vol_nums = sorted(prelim_map)
 
         if orphans and vol_nums:
             fit_between()
@@ -441,6 +451,31 @@ class Manga:
         else:
             # all chapters already have volumes assigned
             logger.info('all chapters come with volume info')
+        #
+        # handle the ones with no chapter numbers now
+        for i, un in enumerate(unknowns):
+            if not un.vol_num:
+                # bad news! this chapter has no volume number and no chapter number
+                un.vol_num = 'unknown'
+                un.ch_num = f'unknown_{i}'
+                logger.warning(
+                    f'chapter id {un.id} has no volume number and no chapter number')
+                logger.info(
+                    f'chapter id {un.id} was assigned to volume {un.vol_num} and given chapter number of {un.ch_num}')
+            else:
+                logger.info(
+                    f'chapter id {un.id} has no chapter number but is from volume {un.vol_num}')
+                vol_num = safe_to_int(un.vol_num)
+                if vol_num in prelim_map:
+                    un.ch_num = sorted(prelim_map[vol_num])[0] - 0.5
+                    prelim_map[vol_num].append(un.ch_num)
+                    logger.info(
+                        f'chapter id {un.id} assigned chapter number of {un.ch_num}')
+                else:
+                    un.ch_num = len(prelim_map[vol_num]) + 1
+                    prelim_map[vol_num].append(un.ch_num)
+                    logger.info(
+                        f'chapter id {un.id} assigned chapter number of {un.ch_num}')
 
         logger.info('all chapters have been assigned to a volume')
 

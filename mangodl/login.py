@@ -102,5 +102,6 @@ class Login:
                 return cookie_file
         else:
             logger.critical(
-                f'unable to reach mangadex (╥﹏╥)...got HTTP {p.status_code} status code')
+                f'got HTTP {p.status_code} status code')
+            logger.critical('seems like mangadex is currently down (╥﹏╥)')
             sys.exit()
