@@ -24,6 +24,9 @@ from .config import mangodl_config
 import logging
 logger = logging.getLogger(__name__)
 
+# get ARGS to access ARGS.url
+from .cli import ARGS
+
 # set up logging prefixes for use in tqdm.tqdm.write
 WARNING_PREFIX = f'{__name__} | [WARNING]: '
 ERROR_PREFIX = f'{__name__} | [ERROR]: '
@@ -84,9 +87,10 @@ class Manga:
                           fs: FileSys,
                           lang: str,
                           saver: bool,
-                          rate_limit: Optional[int],
+                          rate_limit: int,
                           no_volume: bool,
-                          vol_len: int):
+                          vol_len: int,
+                          no_prompt: bool = False):
         """
         Saves all chapters into a folder.
 
@@ -97,12 +101,14 @@ class Manga:
             Manga language.
         saver : bool
             Lower quality images if set to True.
-        rate_limit : int, optional
-            Used to construct a `RateLimitedSession` instance. By default, no limit is placed.
+        rate_limit : int
+            Used to construct a `RateLimitedSession` instance.
         no_volume : bool
             Automatically converts into volume if False.
         vol_len : int
             Default length per volume if not provided by mangadex.
+        no_prompt : bool, default False
+            If set to True, will download every chapter found without prompting user.
 
         Returns
         -------
@@ -150,9 +156,7 @@ class Manga:
         async def main_download() -> Awaitable:
             downloads = []
             async with aiohttp.ClientSession() as session:
-                if rate_limit:
-                    session = RateLimitedSession(
-                        session, rate_limit, rate_limit)
+                session = RateLimitedSession(session, rate_limit, rate_limit)
                 for raw_ch in self.s_downloads:
                     downloads.append(
                         check_server_and_download(session, raw_ch))
@@ -167,11 +171,18 @@ class Manga:
 
         if not self.p_downloads:
             logger.critical(f'no chapters found for {self.title}')
+            if ARGS.url:
+                logger.info(f'quitting application')
+                sys.exit()
             from .mangodl import next_manga
             next_manga()
 
-        # prompt user here
-        self._display_chs()
+        if no_prompt:
+            self.s_downloads = self.p_downloads
+        else:
+            # show some info to the user and get input
+            self._display_chs()
+        #
         # file system stuff here
         fs.setup_folders()
         # download all chapters
@@ -246,26 +257,45 @@ class Manga:
                 return collect_range_input()
 
         print('Which chapters to download?')
-        # print('    ↓ or just use one of these options ↓')
-        # consider adding more options
-        print('[a] - download all    [r] - select custom range    [s] - search another manga    [q] - quit app')
-        c = getch()
 
-        if c.lower() == 'a':
-            return {str(_) for _ in ch_nums}
-        elif c.lower() == 'r':
-            logger.info(f'input {c} - select custom range')
-            collect_range_input()
-        elif c.lower() == 's':
-            logger.warning(f'input {c} - abandoning the manga {self.title}')
-            from .mangodl import search_another
-            search_another()
-        elif c.lower() == 'q':
-            logger.info(f'input {c} - quitting application')
-            sys.exit()
+        if ARGS.url:
+            # don't print the 'search another manga' option
+            print(
+                '[a] - download all    [r] - select custom range    [q] - quit app')
+            c = getch()
+
+            if c.lower() == 'a':
+                return {str(_) for _ in ch_nums}
+            elif c.lower() == 'r':
+                logger.info(f'input {c} - select custom range')
+                collect_range_input()
+            elif c.lower() == 'q':
+                logger.info(f'input {c} - quitting application')
+                sys.exit()
+            else:
+                logger.error(f'invalid input - {c}')
+                return self._get_download_range(ch_nums)
         else:
-            logger.error(f'invalid input - {c}')
-            return self._get_download_range(ch_nums)
+            print(
+                '[a] - download all    [r] - select custom range    [s] - search another manga    [q] - quit app')
+            c = getch()
+
+            if c.lower() == 'a':
+                return {str(_) for _ in ch_nums}
+            elif c.lower() == 'r':
+                logger.info(f'input {c} - select custom range')
+                collect_range_input()
+            elif c.lower() == 's':
+                logger.warning(
+                    f'input {c} - abandoning the manga {self.title}')
+                from .mangodl import search_another
+                search_another()
+            elif c.lower() == 'q':
+                logger.info(f'input {c} - quitting application')
+                sys.exit()
+            else:
+                logger.error(f'invalid input - {c}')
+                return self._get_download_range(ch_nums)
 
         return s
 
@@ -281,29 +311,49 @@ class Manga:
         else:
             print(
                 f'Proceed to download {ch_count} chapter of {self.title}?')
-        print(
-            '[y] - yes, download    [r] - select range again    [s] - search another manga    [q] - quit app')
-        check = getch()
 
-        if check.lower() == 'y':
-            print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
-        elif check.lower() == 'r':
-            return self._display_chs()
-        elif check.lower() == 's':
-            logger.warning(f'abandoning manga -> {self.title}')
-            from .mangodl import search_another
-            search_another()
-        elif check.lower() == 'q':
-            logger.info(f'received input \'{check}\' - exiting program')
-            sys.exit()
+        if ARGS.url:
+            # don't print the 'search another manga' option
+            print(
+                '[y] - yes, download    [r] - select range again    [q] - quit app')
+            check = getch()
+
+            if check.lower() == 'y':
+                print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
+            elif check.lower() == 'r':
+                return self._display_chs()
+            elif check.lower() == 'q':
+                logger.info(f'received input \'{check}\' - exiting program')
+                sys.exit()
+            else:
+                logger.warning(f'invalid input - {check}')
+                return self._confirm_download()
         else:
-            logger.warning(f'invalid input - {check}')
-            return self._confirm_download()
+            print(
+                '[y] - yes, download    [r] - select range again    [s] - search another manga    [q] - quit app')
+            check = getch()
+
+            if check.lower() == 'y':
+                print('(~˘▾˘)~ okay, starting download now ~(˘▾˘~)')
+            elif check.lower() == 'r':
+                return self._display_chs()
+            elif check.lower() == 's':
+                logger.warning(f'abandoning manga -> {self.title}')
+                from .mangodl import search_another
+                search_another()
+            elif check.lower() == 'q':
+                logger.info(f'received input \'{check}\' - exiting program')
+                sys.exit()
+            else:
+                logger.warning(f'invalid input - {check}')
+                return self._confirm_download()
 
     def _compile_volume_info(self, vol_len: int) -> None:
         """Assigns a volume number to all downloaded mangas via their 
         respective Chapter instances."""
         logger.info('figuring out which chapter belongs to which volume')
+        #
+        # these will help us keep track of chapters and volumes
         orphans = []
         prelim_map = defaultdict(list)
 

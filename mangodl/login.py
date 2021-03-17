@@ -1,6 +1,8 @@
 """Used for login to mangadex."""
 
 import requests
+from requests.exceptions import RequestException
+from urllib3.exceptions import MaxRetryError
 from bs4 import BeautifulSoup as bs
 import lxml
 import pickle
@@ -10,7 +12,7 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
 from .config import mangodl_config
-from .helpers import horizontal_rule, _Getch
+from .helpers import horizontal_rule, _Getch, retry_session
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,14 +59,20 @@ class Login:
             PASSWORD = p
 
         with requests.Session() as session:
+            session = retry_session(session, 'https://mangadex.org')
             payload = {'login_username': USERNAME,
                        'login_password': PASSWORD,
                        'remember_me': 1
                        }
             logger.info(f'attempting login to mangadex as {USERNAME}')
-            p = session.post(LOGIN_URL, data=payload, timeout=20)
-            with open(cookie_file, 'wb') as f:
-                pickle.dump(session.cookies, f)
+            try:
+                p = session.post(LOGIN_URL, data=payload, timeout=20)
+                with open(cookie_file, 'wb') as f:
+                    pickle.dump(session.cookies, f)
+            except (MaxRetryError, RequestException) as e:
+                logger.error(e, exc_info=True)
+                logger.error('looks like mangadex is down right now')
+                sys.exit()
         if p.ok:
             # check if login succeeded
             soup = bs(p.text, 'lxml')

@@ -1,13 +1,11 @@
 """Main app logic."""
 
-# BUG random network erros unhandled
+# BUG random network errors unhandled
 # BUG apparently some chapters can have no name - just ''
 # TODO more automated tests
 # TODO add a timer?
 # TODO encrypt login info?
 # TODO options for file format?
-# TODO force one-line download
-# TODO option to not log in
 
 from .mangodl_logging import mangodl_logging
 from .cli import ARGS
@@ -79,7 +77,8 @@ def proc_download(manga):
                             ARGS.saver,
                             ARGS.ratelimit,
                             ARGS.novolume,
-                            ARGS.vollen)
+                            ARGS.vollen,
+                            ARGS.all)
     if not ARGS.novolume:
         fs.create_volumes(manga.downloaded)
     manga.print_bad_chapters()

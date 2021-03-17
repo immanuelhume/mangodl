@@ -13,7 +13,7 @@ from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
 from pathlib import Path
 
 from .config import mangodl_config
-from .helpers import horizontal_rule, prompt_for_int
+from .helpers import horizontal_rule, prompt_for_int, retry_session
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,18 +59,21 @@ class Search:
             none found.
         """
         with requests.Session() as session:
-            retry = Retry(total=10,
-                          status_forcelist=[429, 500, 502, 503, 504],
-                          method_whitelist=["HEAD", "GET", "OPTIONS"],
-                          backoff_factor=1)
-            adapter = HTTPAdapter(max_retries=retry)
-            session.mount('https://mangadex.org/', adapter)
+            session = retry_session(session, 'https://mangadex.org')
+            # retry = Retry(total=10,
+            #               status_forcelist=[429, 500, 502, 503, 504],
+            #               method_whitelist=["HEAD", "GET", "OPTIONS"],
+            #               backoff_factor=1)
+            # adapter = HTTPAdapter(max_retries=retry)
+            # session.mount('https://mangadex.org/', adapter)
             with open(cookie_file, 'rb') as f:
                 session.cookies.update(pickle.load(f))
             try:
-                resp = session.get(SEARCH_URL + manga_title, timeout=30)
+                resp = session.get(SEARCH_URL + manga_title, timeout=15)
             except (MaxRetryError, RequestException) as e:
                 logger.error(e, exc_info=True)
+                logger.error('looks like mangadex is down right now')
+                sys.exit()
         soup = bs(resp.text, 'lxml')
         manga_entries = soup.find_all('div', class_='manga-entry')
         if manga_entries:

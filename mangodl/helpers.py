@@ -25,7 +25,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_json_data(url: str, time_out: int = 30, max_tries: int = 10) -> Dict:
+def get_json_data(url: str, time_out: int = 10, max_tries: int = 10) -> Dict:
     """
     Sends a GET request to the API url. Expects a JSON response, and returns
     the 'data' section of JSON string as a dict.
@@ -44,19 +44,31 @@ def get_json_data(url: str, time_out: int = 30, max_tries: int = 10) -> Dict:
     dict
         Dict representation of 'data' section in the JSON string.
     """
-    retry = Retry(total=max_tries,
-                  status_forcelist=[429, 500, 502, 503, 504],
-                  method_whitelist=["HEAD", "GET", "OPTIONS"],
-                  backoff_factor=1)
-    adapter = HTTPAdapter(max_retries=retry)
+    # retry = Retry(total=max_tries,
+    #               status_forcelist=[429, 500, 502, 503, 504],
+    #               method_whitelist=["HEAD", "GET", "OPTIONS"],
+    #               backoff_factor=1)
+    # adapter = HTTPAdapter(max_retries=retry)
     with requests.Session() as s:
-        s.mount(API_BASE, adapter)
+        s = retry_session(s, API_BASE, max_tries)
+        #s.mount(API_BASE, adapter)
         try:
             resp = s.get(url, timeout=time_out)
             return resp.json()['data']
         except (MaxRetryError, RequestException) as e:
             logger.error(e, exc_info=True)
             sys.exit()
+
+
+def retry_session(session, domain: str, max_tries: int = 10, backoff: int = 1):
+    """Mounts adapter to a session, configuring retries."""
+    retry = Retry(total=max_tries,
+                  status_forcelist=[429, 500, 502, 503, 504],
+                  method_whitelist=["HEAD", "GET", "OPTIONS"],
+                  backoff_factor=backoff)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount(domain, adapter)
+    return session
 
 
 def chunk(lst: List, n: int) -> List:

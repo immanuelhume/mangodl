@@ -97,7 +97,7 @@ class Chapter:
         Creates a folder for this chapter inside `raw_path` and saves
         all images into the new folder.
         """
-        folder_name = f'ch {self.ch_num} - {self.ch_title}' if self.ch_title else f'ch {self.ch_num}'
+        folder_name = f'ch {self.ch_num} ({self.ch_title})' if self.ch_title else f'ch {self.ch_num}'
         self.ch_path = os.path.join(raw_path, folder_name)
         safe_mkdir(self.ch_path)
 
