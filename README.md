@@ -6,9 +6,9 @@ A simple command line app to download manga from mangadex.
 
 If you read manga on a e-reader, as I do on a Kobo Libra H2O, you might have felt that it's best to sideload the manga in volumes rather than individual chapters.
 
-Mangodl automatically archives chapters into .cbz volumes after downloading. Even if a chapter is not assigned any volume on mangadex, mangodl will safely archive it in an appropriate volume, creating new ones if necessary.
+Mangodl automatically archives chapters into .cbz volumes after downloading. Even if a chapter is not assigned any volume on mangadex, mangodl safely archives it in an appropriate volume, creating new ones if necessary.
 
-Of course, if you just wanna download some manga and don't care about this auto-volumizing thing, you can turn it off with the `--novolume` flag.
+Of course, **if you just wanna download some manga** and don't care about this auto-volumizing thing, you can turn it off with the `--novolume` flag. Then mangodl behaves as a normal manga downloading app.
 
 ## Installation
 
@@ -28,7 +28,7 @@ $ mangodl
 
 The app will start and prompt you for whatever parameters it needs.
 
-You can run mangodl with command-line options too. To download a manga in one line:
+If you enjoy typing long lines into the terminal, you can use command-line options. To download a manga in one line:
 
 ```
 $ mangodl --url <manga_url_on_mangadex> --all -f <abspath_to_download_folder>
@@ -42,7 +42,7 @@ By default, if you just run `$ mangodl`, the app will try logging into mangadex.
 
 Therefore, mangodl will prompt you for your mangadex credentials the first time you use it. Your username and password are then saved locally in a `mangodl_config.ini` file so you won't have to enter them again the next time you use mangodl.
 
-If you want to be a real safe and secure boi and dislike the idea of storing credentials in text files, run mangodl with the `--url` option, and pass in the URL of the manga on mangadex. So, for instance, to download Domestic Girlfriend ☜(ﾟヮﾟ ☜) :
+If you want to be a real safe and secure boi and dislike the idea of storing credentials in text files, run mangodl with the `--url` option, and pass in the URL of the manga on mangadex. So, for instance, to download nobel-prize worthy Domestic Girlfriend:
 
 ```
 $ mangodl --url https://mangadex.org/
@@ -54,7 +54,7 @@ And no login will be required.
 
 ### Archive into volumes
 
-Mangodl archives all chapters into volumes by default. As was written above, even if a chapter is not assigned any volume on mangadex, mangodl will safely archive it in an appropriate volume, creating new ones if necessary.
+Mangodl archives all chapters into volumes by default. As was written above, even if a chapter is not assigned any volume on mangadex, mangodl safely archives it in an appropriate volume, creating new ones if necessary.
 
 For a manga on mangadex, there are three scenarios possible:
 
@@ -62,7 +62,9 @@ For a manga on mangadex, there are three scenarios possible:
 2. Some chapters have a volume number while others don't
 3. No chapter has a volume number
 
-In the case of (1), mangodl takes a break and doesn't do anything extra. For (2), mangodl first tries to fit 'orphaned' chapters into existing volumes. For the ones that remain, new volumes are created to accomodate them. The length of each volume is determined by the average length of the volumes which exist naturally on mangadex. And as for (3), volumes will be created starting from volume 1, and each volume will take a default number of chapters. This default value is 10, but can be configured using the `--vollen` flag:
+In the case of (1), mangodl takes a break and doesn't do anything extra. For (2), mangodl first tries to fit 'orphaned' chapters into existing volumes. For the ones that remain, new volumes are created to accomodate them. The length of each volume is determined by the average length of the volumes which exist naturally on mangadex.
+
+As for (3), new volumes will be created starting from volume 1, and each volume will take a default number of chapters. This default value is 10, but can be configured using the `--vollen` flag:
 
 ```
 $ mangodl [...] --vollen 20
@@ -80,7 +82,7 @@ Note that if you use the `--all` flag, then mangodl will not prompt you about an
 
 ### Limit requests per second
 
-Mangodl uses asyncio to speed up downloads (with semaphore allowing only 2 manga at any time). By default, mangodl sends a maximum of 30 GET requests per second when downloading. You may use the `--ratelimit` option to increase or decrease the limit at your own risk:
+Mangodl uses asyncio to speed up downloads (with a semaphore allowing only 2 manga at any time). By default, mangodl sends a maximum of 30 GET requests per second when downloading. You may use the `--ratelimit` option to increase or decrease the limit at your own risk:
 
 ```
 $ mangodl [...] --ratelimit 1
