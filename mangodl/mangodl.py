@@ -25,17 +25,27 @@ logger = logging.getLogger(__name__)
 
 getch = _Getch()
 
-COOKIE_FILE = Login.login()
-
 
 def main():
-    """This function runs when the program is booted."""
+    """This function is the program's entry point."""
+    if ARGS.url:
+        logger.info(f'downloading manga at {ARGS.url}')
+        manga_id = ARGS.url.split('/')[-2]
+        manga = Manga(manga_id)
+        proc_download(manga)
+        sys.exit()
+    #
+    # login
+    global COOKIE_FILE
+    COOKIE_FILE = Login.login()
+    #
     # search for `ARGS.manga`
     manga_id = Search.get_manga_id(ARGS.manga, COOKIE_FILE)
     manga = Manga(manga_id)
+    #
     # nothing has been downloaded before this point
     proc_download(manga)
-
+    # download completed
     next_manga()
 
 

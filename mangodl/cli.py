@@ -130,7 +130,8 @@ def check_password():
 
 
 # run checks
-check_title()
 check_folder()
-check_username()
-check_password()
+if not ARGS.url:
+    check_title()
+    check_username()
+    check_password()
