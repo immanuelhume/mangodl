@@ -90,9 +90,23 @@ def check_title():
 
 
 def check_folder():
-    if not ARGS.folder and not mangodl_config.get_root_dir():
-        logger.warning('download directory not set')
-        f = input('Please specify a directory to store manga in (absolute path): ')
+    if not ARGS.folder:
+        print('No download folder has been selected ⚆ _ ⚆')
+        print('Would you like to use the current folder as the download directory?')
+        print('[y] - use current folder    [n] - specify my own folder    [d] - use default Downloads folder')
+        c = input().strip()
+        if c.lower() == 'y':
+            f = os.path.abspath('.')
+            logger.info(f'will save manga to {f}')
+        elif c.lower() == 'd':
+            f = os.path.join(os.path.expanduser('~'), 'Downloads')
+            logger.info(f'will save manga to {f}')
+        elif c.lower() == 'n':
+            f = input('Please enter an absolute path: ')
+            logger.info(f'will save manga to {f}')
+        else:
+            logger.error(f'input \'{c}\' is invalid')
+            return check_folder()
         if not os.path.isdir(f):
             print(f'{f} does not exist. Create directory?')
             print('[y] - yes    [n] - no')
@@ -108,8 +122,6 @@ def check_folder():
                 return check_folder()
         ARGS.folder = f
         mangodl_config.set_root_dir(f)
-    elif not ARGS.folder:
-        ARGS.folder = mangodl_config.get_root_dir()
     else:
         mangodl_config.set_root_dir(ARGS.folder)
 
