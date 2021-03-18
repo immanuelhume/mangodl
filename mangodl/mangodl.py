@@ -1,12 +1,12 @@
 """Main app logic."""
 
 # BUG random network errors unhandled
-# BUG apparently some chapters can have no name - just ''
 # TODO more automated tests
 # TODO add a timer?
 # TODO encrypt login info?
 # TODO options for file format?
 # TODO automatically search another site
+# TODO add multiple url option
 
 from .mangodl_logging import mangodl_logging
 from .cli import ARGS
@@ -30,10 +30,11 @@ def main():
     #
     # download via url - no login
     if ARGS.url:
-        logger.info(f'downloading manga at {ARGS.url}')
-        manga_id = ARGS.url.split('/')[-2]
-        manga = Manga(manga_id)
-        proc_download(manga)
+        for url in ARGS.url:
+            logger.info(f'downloading manga at {url}')
+            manga_id = url.split('/')[-2]
+            manga = Manga(manga_id)
+            proc_download(manga)
         sys.exit()
     #
     # login

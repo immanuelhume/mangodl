@@ -72,7 +72,7 @@ argparser.add_argument('--ratelimit', metavar='LIMIT', action='store', type=int,
                        help='limit number of requests per second (defaults to %(default)s)')
 #
 # download by url
-argparser.add_argument('--url', metavar='URL', action='store', type=str,
+argparser.add_argument('--url', metavar='URL', action='store', type=str, nargs='+',
                        help='url to the manga on mangadex - using this will download directly without logging into mangadex')
 #
 # download all chapters, don't prompt
