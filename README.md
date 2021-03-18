@@ -97,7 +97,7 @@ Note that if you use the `--all` flag, then mangodl will not prompt you about an
 
 ### Limit requests per second
 
-Mangodl uses asyncio to hopefully speed up downloads (with a semaphore allowing only 2 chapters at any time). By default, mangodl sends a maximum of 30 GET requests per second when downloading. You may use the `--ratelimit` option to increase or decrease the limit at your own risk:
+Mangodl uses asyncio to hopefully speed up downloads (with a semaphore allowing only 2 chapters at any time). By default, mangodl sends a maximum of 30 GET requests per second when downloading images. You may use the `--ratelimit` option to increase or decrease the limit at your own risk:
 
 ```
 $ mangodl [...] --ratelimit 1

@@ -64,7 +64,7 @@ def retry_session(session, domain: str, max_tries: int = 10, backoff: int = 1):
     """Mounts adapter to a session, configuring retries."""
     retry = Retry(total=max_tries,
                   status_forcelist=[429, 500, 502, 503, 504],
-                  method_whitelist=["HEAD", "GET", "OPTIONS"],
+                  method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
                   backoff_factor=backoff)
     adapter = HTTPAdapter(max_retries=retry)
     session.mount(domain, adapter)
@@ -269,6 +269,17 @@ class _GetchUnix:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
+
+
+def sep_num_and_str(lst: List) -> Tuple:
+    nums = []
+    strs = []
+    for _ in lst:
+        if isinstance(_, (int, float)):
+            nums.append(_)
+        else:
+            strs.append(_)
+    return nums, strs
 
 
 class _GetchWindows:

@@ -80,34 +80,34 @@ class FileSys:
         # make a new folder to store compiled volumes
         vols_path = os.path.join(self.base_path, self.manga_title)
         safe_mkdir(vols_path)
-
+        #
+        # copy raw chapters
         for ch in tqdm(downloaded,
                        total=len(downloaded),
                        desc=f'Copying files',
                        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
                        ncols=80,
                        leave=False):
-            new_ch_path = os.path.join(
-                vols_path, f'{ch.vol_num}', f'{ch.ch_num}')
+            if ch.ch_num == '_':
+                # has no volume number
+                new_ch_path = os.path.join(vols_path, ch.ch_title)
+            else:
+                new_ch_path = os.path.join(
+                    vols_path, f'{self.manga_title}, Vol. {ch.vol_num}', f'{ch.ch_num}')
             copy_tree(ch.ch_path, new_ch_path)
             tqdm.write(f'copied {ch.ch_path} -> {new_ch_path}')
 
-        for vol in tqdm(os.scandir(vols_path),
-                        total=len(os.listdir(vols_path)),
-                        desc=f'Archiving into volumes',
-                        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
-                        ncols=80,
-                        leave=False):
-            old_name = vol.path
-            new_name = os.path.join(os.path.split(vol.path)[
-                0], f'{self.manga_title}, Vol. {vol.name}')
-            os.rename(old_name, new_name)
+        for raw_vol in tqdm(os.scandir(vols_path),
+                            total=len(os.listdir(vols_path)),
+                            desc=f'Archiving into volumes',
+                            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                            ncols=80,
+                            leave=False):
 
-            self.to_cbz(os.path.join(vols_path, new_name), vols_path)
-
+            self.to_cbz(raw_vol.path, vols_path)
+            #
             # delete the non-archived folder
-            shutil.rmtree(new_name)
-            tqdm.write(f'{new_name} deleted')
+            shutil.rmtree(raw_vol.path)
 
     @ staticmethod
     def to_cbz(dir_to_zip: Path, destination: Path) -> None:
@@ -136,5 +136,5 @@ class FileSys:
         final_name = base_name + '.cbz'
         os.rename(new_volume_path, final_name)
 
-        tqdm.write(f'{new_volume_path} renamed -> {final_name}')
-        tqdm.write(f'( ^_^）o自  {archive_name} compiled  自o（^_^ )')
+        tqdm.write(f'renamed {new_volume_path} -> {final_name}')
+        tqdm.write(f'>>>>>>( ^_^）o自  {archive_name} compiled  自o（^_^ )<<<<<<')

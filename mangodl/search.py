@@ -78,7 +78,7 @@ class Search:
         manga_entries = soup.find_all('div', class_='manga-entry')
         if manga_entries:
             logger.info(
-                f'got {len(manga_entries)} result(s) for search-string {manga_title} ')
+                f'got {len(manga_entries)} result(s) for \'{manga_title}\'')
             horizontal_rule()
             for i, manga_entry in enumerate(manga_entries):
                 manga_title = manga_entry.find(

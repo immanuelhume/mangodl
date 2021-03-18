@@ -72,6 +72,11 @@ class Chapter:
         self.vol_num = safe_to_int(data['volume'])
         self.ch_title = data['title']
 
+        if isinstance(self.ch_num, str):
+            # chapter number is probably '' on mangadex
+            # will not include it in any volume
+            self.ch_num = '_'
+
         tqdm.write(f'info loaded for chapter {self.ch_num} (id {self.id})')
 
         self._get_page_links()
@@ -111,7 +116,9 @@ class Chapter:
                         await out_file.write(data)
                         tqdm.write(f'saved -> {page_path}')
             except (ServerDisconnectedError, ClientPayloadError, ClientConnectorError) as e:
-                tqdm.write(f'{ERROR_PREFIX}{repr(e)}')
+                tqdm.write(f'{ERROR_PREFIX}chapter {self.ch_num} - {repr(e)}')
+                # just try again
+                asyncio.sleep(1)
                 return download_one(session, url, page_path)
 
         async def download_all(session, urls: str) -> Awaitable:

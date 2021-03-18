@@ -27,6 +27,8 @@ getch = _Getch()
 
 def main():
     """This function is the program's entry point."""
+    #
+    # download via url - no login
     if ARGS.url:
         logger.info(f'downloading manga at {ARGS.url}')
         manga_id = ARGS.url.split('/')[-2]

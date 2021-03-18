@@ -71,7 +71,7 @@ class Login:
                     pickle.dump(session.cookies, f)
             except (MaxRetryError, RequestException) as e:
                 logger.error(e, exc_info=True)
-                logger.error('looks like mangadex is down right now')
+                logger.error('looks like mangadex is down right now (╥﹏╥)')
                 sys.exit()
         if p.ok:
             # check if login succeeded

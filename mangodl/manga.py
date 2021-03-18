@@ -16,7 +16,7 @@ import pprint
 from .chapter import Chapter
 from .helpers import (get_json_data, chunk, RateLimitedSession,
                       gather_with_semaphore, safe_to_int, horizontal_rule,
-                      find_int_between, parse_range_input, _Getch)
+                      find_int_between, parse_range_input, _Getch, sep_num_and_str)
 from .filesys import FileSys
 from .config import mangodl_config
 
@@ -185,26 +185,34 @@ class Manga:
         #
         # file system stuff here
         fs.setup_folders()
+        #
         # download all chapters
         asyncio.run(main_download())
         logger.info('all chapters downloaded (ᵔᴥᵔ)')
-        # ensure every chapter is assigned a volume
+        #
+        # check and assign volumes
         if not no_volume:
             self._compile_volume_info(vol_len)
 
     def _display_chs(self):
-        """Print out some info about the chapters found for user and solicits user input
+        """Print out some info about the chapters found and solicits user input
         before commencing download."""
-        ch_nums = [safe_to_int(chap['chapter']) for chap in self.p_downloads]
+        #
+        # just take away the chapters with no chapter numbers first
+        ch_nums, ch_str_nums = sep_num_and_str(
+            [safe_to_int(chap['chapter']) for chap in self.p_downloads])
         ch_nums.sort()
-        self.missing = find_int_between(ch_nums)
+
         horizontal_rule()
-        print(f'Found {len(ch_nums)} chapter(s) for {self.title}')
+        print(f'Found {len(self.p_downloads)} chapter(s) for {self.title}')
         if len(ch_nums) == 1:
             print(f'Chapter {ch_nums[0]} can be downloaded.')
         else:
             print(f'    First chapter: {ch_nums[0]}')
             print(f'    Last chapter: {ch_nums[-1]}')
+        #
+        # check for potentially missing chapters
+        self.missing = find_int_between(ch_nums)
         if self.missing:
             n = len(self.missing)
             if n == 1:
@@ -216,12 +224,19 @@ class Manga:
                 pprint.pprint([ch for ch in self.missing], compact=True,
                               width=min(len(self.missing), 80))
                 print('\033[0m', end='')
-
+        #
+        # prompt user for download range
         selection = self._get_download_range(ch_nums)
 
-        # selected downloads
         self.s_downloads = [
             ch for ch in self.p_downloads if ch['chapter'] in selection]
+        #
+        # now deal with those without any chapter numbers
+        if ch_str_nums:
+            nameless_chs = [ch for ch in self.p_downloads if isinstance(
+                safe_to_int(ch['chapter']), str)]
+            horizontal_rule()
+            self.handle_nameless(nameless_chs)
 
         # if not all chapters were selected
         if len(self.s_downloads) < len(self.p_downloads):
@@ -245,7 +260,7 @@ class Manga:
                             logger.info(
                                 f'chapter {ch_num} queued for download')
                         else:
-                            logger.warning(
+                            logger.info(
                                 f'chapter {ch_num} will not be downloaded')
                 if not s:
                     # nothing selected!
@@ -348,6 +363,25 @@ class Manga:
                 logger.warning(f'invalid input - {check}')
                 return self._confirm_download()
 
+    def handle_nameless(self, nameless_chs: List) -> None:
+        """Lets user decide what to do with chapters with no chapter number."""
+        print(
+            f'Found {len(nameless_chs)} chapter(s) with no chapter number ಠ_ಠ')
+        ch_titles = [ch['title'] for ch in nameless_chs]
+        print(f'Title(s):', ', '.join(ch_titles))
+        print('↑ download or ignore? ↑')
+        print('[y] - download as well    [n] - ignore')
+        c = getch()
+        if c.lower() == 'y':
+            logger.info(f'got input - {c}, will include in downloads')
+            self.s_downloads += nameless_chs
+        elif c.lower() == 'n':
+            logger.info(f'got input - {c}, will ignore')
+        else:
+            # reject input and try again
+            logger.error(f'got invalid input -{c}')
+            return self.handle_nameless(nameless_chs)
+
     def _compile_volume_info(self, vol_len: int) -> None:
         """Assigns a volume number to all downloaded mangas via their 
         respective Chapter instances."""
@@ -355,15 +389,13 @@ class Manga:
         #
         # we will get a list of downloaded chapters from self.downloaded
         # these will help us keep track of chapters and volumes
-        unknowns = []
         orphans = []
         prelim_map = defaultdict(list)
 
         for ch in self.downloaded:
-            if ch.ch_num == '':
+            if ch.ch_num == '_':
                 # bad news! a chapter without a chapter number
                 logger.warning(f'chapter id {ch.id} has no chapter number')
-                unknowns.append(ch)
             elif ch.vol_num == '':
                 orphans.append(ch)  # passed by reference
             else:
@@ -451,31 +483,6 @@ class Manga:
         else:
             # all chapters already have volumes assigned
             logger.info('all chapters come with volume info')
-        #
-        # handle the ones with no chapter numbers now
-        for i, un in enumerate(unknowns):
-            if not un.vol_num:
-                # bad news! this chapter has no volume number and no chapter number
-                un.vol_num = 'unknown'
-                un.ch_num = f'unknown_{i}'
-                logger.warning(
-                    f'chapter id {un.id} has no volume number and no chapter number')
-                logger.info(
-                    f'chapter id {un.id} was assigned to volume {un.vol_num} and given chapter number of {un.ch_num}')
-            else:
-                logger.info(
-                    f'chapter id {un.id} has no chapter number but is from volume {un.vol_num}')
-                vol_num = safe_to_int(un.vol_num)
-                if vol_num in prelim_map:
-                    un.ch_num = sorted(prelim_map[vol_num])[0] - 0.5
-                    prelim_map[vol_num].append(un.ch_num)
-                    logger.info(
-                        f'chapter id {un.id} assigned chapter number of {un.ch_num}')
-                else:
-                    un.ch_num = len(prelim_map[vol_num]) + 1
-                    prelim_map[vol_num].append(un.ch_num)
-                    logger.info(
-                        f'chapter id {un.id} assigned chapter number of {un.ch_num}')
 
         logger.info('all chapters have been assigned to a volume')
 
