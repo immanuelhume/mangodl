@@ -93,7 +93,9 @@ def check_folder():
     if not ARGS.folder:
         print('No download folder has been selected ⚆ _ ⚆')
         print('Would you like to use the current folder as the download directory?')
-        print('[y] - use current folder    [n] - specify my own folder    [d] - use default Downloads folder')
+        print('[y] - okay, use current folder')
+        print('[n] - specify my own folder')
+        print('[d] - use default Downloads folder')
         c = input().strip()
         if c.lower() == 'y':
             f = os.path.abspath('.')

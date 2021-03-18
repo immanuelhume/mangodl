@@ -275,8 +275,9 @@ class Manga:
 
         if ARGS.url:
             # don't print the 'search another manga' option
-            print(
-                '[a] - download all    [r] - select custom range    [q] - quit app')
+            print('[a] - download all chapters')
+            print('[r] - select custom range')
+            print('[q] - quit app')
             c = getch()
 
             if c.lower() == 'a':
@@ -291,8 +292,11 @@ class Manga:
                 logger.error(f'invalid input - {c}')
                 return self._get_download_range(ch_nums)
         else:
-            print(
-                '[a] - download all    [r] - select custom range    [s] - search another manga    [q] - quit app')
+            print('[a] - download all chapters')
+            print('[r] - select custom range')
+            print('[s] - search for another manga instead')
+            print('[q] - quit app')
+
             c = getch()
 
             if c.lower() == 'a':
@@ -329,8 +333,10 @@ class Manga:
 
         if ARGS.url:
             # don't print the 'search another manga' option
-            print(
-                '[y] - yes, download    [r] - select range again    [q] - quit app')
+            print('[y] - yes, confirm download')
+            print('[r] - choose range again')
+            print('[q] - quit app')
+
             check = getch()
 
             if check.lower() == 'y':
@@ -344,8 +350,11 @@ class Manga:
                 logger.warning(f'invalid input - {check}')
                 return self._confirm_download()
         else:
-            print(
-                '[y] - yes, download    [r] - select range again    [s] - search another manga    [q] - quit app')
+            print('[y] - yes, confirm download')
+            print('[r] - choose range again')
+            print('[s] - search for another manga instead')
+            print('[q] - quit app')
+
             check = getch()
 
             if check.lower() == 'y':
