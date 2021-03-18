@@ -8,6 +8,7 @@ A simple command line app to download manga from mangadex.
   - [Table of Contents](#table-of-contents)
   - [Okay cool, why would I use this?](#okay-cool-why-would-i-use-this)
   - [Installation](#installation)
+    - [Recommended installation](#recommended-installation)
   - [Usage](#usage)
     - [A note on mangadex login configs](#a-note-on-mangadex-login-configs)
   - [Main features](#main-features)
@@ -27,11 +28,39 @@ Of course, **if you just wanna download some manga** and don't care about this a
 
 ## Installation
 
+**Note**: Requires Python 3.6+ on your system.
+
 You can install mangodl from PyPI by running:
 
 ```
-$ pip install mangodl
+$ pip3 install mangodl
 ```
+
+### Recommended installation
+
+You should use a virtual environment to install mangodl. This allows the source files for mangodl to live alongside your manga files.
+
+**Guide if you are unsure:**
+
+Create a root folder to store your manga. Then navigate into the folder from the terminal and create a virtual environment. Run this:
+
+```
+$ python3 -m venv mangodl
+```
+
+Activate the virtual environment:
+
+```
+$ . mangodl/bin/activate
+```
+
+Now install mangodl:
+
+```
+$ pip3 install mangodl
+```
+
+(☞ ﾟ ∀ ﾟ)☞ Done! Choose to download all manga into the current folder when prompted by mangodl. Just remember to activate the virtual environment whenever you use mangodl again.
 
 ## Usage
 
