@@ -57,7 +57,7 @@ Run `$ mangodl -h` to see the full list of command-line options.
 
 By default, if you just run `$ mangodl`, the app will try logging into mangadex. This is needed to search for manga on the mangadex main page.
 
-![mangadex-login-prompt](https://github.com/immanuelhume/mangodl/blob/master/docs/assets/mangadex-login-prompt.png)
+![mangadex-login-prompt](https://github.com/immanuelhume/mangodl/blob/master/docs/assets/mangadex-login-prompt.png?raw=true)
 
 Therefore, mangodl will prompt you for your mangadex credentials the first time you use it. Your username and password are then saved locally in a `mangodl_config.ini` file so you won't have to enter them again the next time you use mangodl.
 
@@ -99,7 +99,7 @@ Sometimes chapters are missing from mangadex. (╯°□°）╯︵ ┻━┻
 
 Suppose a manga has 100 chapters and mangadex only hosts chapter 1 and chapter 100. Mangodl will alert you that chapters 2-99 are missing before you decide to download, so you won't get rekt by accidental spoilers.
 
-![missing-chapters-warning](https://github.com/immanuelhume/mangodl/blob/master/docs/assets/missing-chapters.png)
+![missing-chapters-warning](https://github.com/immanuelhume/mangodl/blob/master/docs/assets/missing-chapters.png?raw=true)
 
 Note that if you use the `--all` flag, then mangodl will not prompt you about anything so you run the risk of not catching missing chapters.
 
@@ -129,6 +129,6 @@ Note that unless the `--all` flag is specified to download every page in every m
 
 As long as the `--all` flag is not used, mangodl will politely ask you which chapters you'd like to download.
 
-![range-input](https://github.com/immanuelhume/mangodl/blob/master/docs/assets/range-input.png)
+![range-input](https://github.com/immanuelhume/mangodl/blob/master/docs/assets/range-input.png?raw=tru)
 
 To specify a range, use any comma separated permutation of 'x-y' (a range) or 'z' (single chapter). What I keyed in above works.
