@@ -4,14 +4,14 @@ defines functions to interface with the config file.
 """
 
 import configparser
-import os
+from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mangodl_config.ini')
+CONFIG_FILE = Path(__file__).parent / 'mangodl_config.ini'
 config = configparser.ConfigParser()
 # check if config file exists
-if not os.path.exists(CONFIG_FILE):
+if not CONFIG_FILE.exists():
     config['links'] = {}
     config['links']['api_base'] = 'https://api.mangadex.org/v2/'
     config['links']['search_url'] = 'https://mangadex.org/search?tag_mode_exc=any&tag_mode_inc=all&title='

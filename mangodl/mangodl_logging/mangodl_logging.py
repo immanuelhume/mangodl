@@ -1,6 +1,6 @@
-import os
+from pathlib import Path
 # configure root logger
 import logging
 import logging.config
-logging.config.fileConfig(os.path.join(
-    os.path.dirname(__file__), 'mangodl_logging.ini'))
+config_file = Path(__file__).parent / 'mangodl_logging.ini'
+logging.config.fileConfig(config_file)
