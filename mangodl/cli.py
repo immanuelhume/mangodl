@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # welcome line
-print('(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to Mango Downloads! (◠‿◠✿)')
+print('****** (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Welcome to Mango Downloads! (◠‿◠✿) ******')
 
 _desc = """
         Download manga from the command line through the mangadex API. 
@@ -33,48 +33,48 @@ argparser = argparse.ArgumentParser(prog='mangodl',
                                     usage='%(prog)s [options]',
                                     description=_desc,
                                     formatter_class=argparse.RawTextHelpFormatter)
-#
+
 # manga title
 argparser.add_argument('-m', '--manga', metavar='MANGA', action='store', type=str,
                        help='name of the manga to download')
-#
+
 # root directory for downloads
 argparser.add_argument('-f', '--folder', metavar='DOWNLOAD_DIRECTORY', action='store', type=str,
                        default=mangodl_config.get_root_dir(),
                        help='absolute path to download folder')
-#
+
 # username
 argparser.add_argument('-u', '--username', metavar='USERNAME', action='store', type=str,
                        help='mangadex username')
-#
+
 # password
 argparser.add_argument('-p', '--password', metavar='PASSWORD', action='store', type=str,
                        help='mangadex password')
-#
+
 # archive to volumes or not
 argparser.add_argument('--novolume', action='store_true',
                        help='don\'t automatically compile into volumes')
-#
+
 # default chapters per volume
 argparser.add_argument('--vollen', metavar='VOLUME_LENGTH', action='store', type=int, default=10,
                        help='number of chapters per volume to default to, if mangadex did not assign (defaults to %(default)s)')
-#
+
 # language
 argparser.add_argument('-l', '--language', metavar='LANGUAGE', action='store', type=str,
                        default='gb', help='select manga language (defaults to english)')
-#
+
 # use low quality images
 argparser.add_argument('-s', '--saver', action='store_true',
                        help='use low quality images')
-#
-# rate limit
+
+# rate limit when downloading images
 argparser.add_argument('--ratelimit', metavar='LIMIT', action='store', type=int, default=30,
                        help='limit number of requests per second (defaults to %(default)s)')
-#
+
 # download by url
 argparser.add_argument('--url', metavar='URL', action='store', type=str, nargs='+',
                        help='url to the manga on mangadex - using this will download directly without logging into mangadex')
-#
+
 # download all chapters, don't prompt
 argparser.add_argument('--all', action='store_true',
                        help='don\'t prompt to ask which chapters to download, just download every chapter found')
@@ -83,13 +83,13 @@ argparser.add_argument('--all', action='store_true',
 ARGS = argparser.parse_args()
 
 
-def check_title():
+def check_title() -> None:
     if not ARGS.manga:
         m = input('Search for a manga: ')
         ARGS.manga = m
 
 
-def check_folder():
+def check_folder() -> None:
     if not ARGS.folder:
         print('No download folder has been selected ⚆ _ ⚆')
         print('Would you like to use the current folder as the download directory?')
@@ -128,7 +128,7 @@ def check_folder():
         mangodl_config.set_root_dir(ARGS.folder)
 
 
-def check_username():
+def check_username() -> None:
     if not ARGS.username and not mangodl_config.get_username():
         u = input('Mangadex username: ')
         mangodl_config.set_username(u)
@@ -138,7 +138,7 @@ def check_username():
         mangodl_config.set_username(ARGS.username)
 
 
-def check_password():
+def check_password() -> None:
     if not ARGS.password and not mangodl_config.get_password():
         u = input('Mangadex password: ')
         mangodl_config.set_password(u)

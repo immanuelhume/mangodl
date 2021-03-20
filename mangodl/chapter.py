@@ -1,15 +1,23 @@
 """Contains the Chapter class."""
 
-import os
 import asyncio
 import aiohttp
 import aiofiles
-from aiohttp.client_exceptions import ClientPayloadError, ServerDisconnectedError, ClientConnectorError
+from aiohttp.client_exceptions import (ClientPayloadError,
+                                       ServerDisconnectedError,
+                                       ClientConnectorError)
 from tqdm import tqdm
-from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
+from typing import (Optional,
+                    Union,
+                    Dict,
+                    List,
+                    Tuple,
+                    Iterator,
+                    Awaitable,
+                    Set)
 from pathlib import Path
 
-from .helpers import safe_mkdir, safe_to_int
+from .helpers import safe_mkdir, safe_to_int, RateLimitedSession
 from .config import mangodl_config
 from .cli import ARGS
 
@@ -41,8 +49,8 @@ class Chapter:
     id : str or int
     url : str
     hash : str
-    ch_num : str or int or float
-    vol_num : str or int or float
+    ch_num : int / float / str
+    vol_num : int / float / str
     ch_title : str
     page_links : list
         Image URLs for each page.
@@ -57,11 +65,13 @@ class Chapter:
             self.url = API_BASE + f'chapter/{id}'
         self.id = id
 
-    async def load(self, session) -> Awaitable:
+    async def load(self, session: RateLimitedSession) -> Awaitable:
         """Sends GET request to collect chapter info. Compiles page links at the end."""
 
         tqdm.write(f'sending GET request to {self.url}')
 
+        # 'async with await' is used instead of 'async await' because
+        # of the way RateLimitedSession is defined
         async with await session.get(self.url) as resp:
             self.data = await resp.json(content_type=None)
 
@@ -71,11 +81,6 @@ class Chapter:
         self.ch_num = safe_to_int(data['chapter'])
         self.vol_num = safe_to_int(data['volume'])
         self.ch_title = data['title']
-
-        if isinstance(self.ch_num, str):
-            # chapter number is probably '' on mangadex
-            # will not include it in any volume
-            self.ch_num = '_'
 
         tqdm.write(f'info loaded for chapter {self.ch_num} (id {self.id})')
 
@@ -88,14 +93,12 @@ class Chapter:
         """
         try:
             server_base = self.data['server'] + f'{self.hash}/'
-            self.page_links = [server_base +
-                               page for page in self.data['pages']]
-            tqdm.write(
-                f'server OK for chapter {self.ch_num} with {len(self.page_links)} pages')
-        except KeyError:
-            tqdm.write(
-                f'{WARNING_PREFIX}no image servers for chapter id {self.id} (chapter {self.ch_num}) - KeyError')
-            self.page_links = False
+            self.page_links = [server_base + page for page in self.data['pages']]
+            tqdm.write(f'server OK for chapter {self.ch_num} with {len(self.page_links)} pages')
+        except KeyError as e:
+            tqdm.write(f'{ERROR_PREFIX}chapter {self.ch_num}\n{repr(e)}')
+            tqdm.write(f'{WARNING_PREFIX}no image servers for chapter id {self.id} (chapter {self.ch_num})')
+            self.page_links = None
 
     async def download(self, session, raw_path: Path) -> Awaitable:
         """
@@ -103,12 +106,10 @@ class Chapter:
         all images into the new folder.
         """
         folder_name = f'ch {self.ch_num} ({self.ch_title})' if self.ch_title else f'ch {self.ch_num}'
-        self.ch_path = os.path.join(raw_path, folder_name)
+        self.ch_path = raw_path / folder_name
         safe_mkdir(self.ch_path)
 
-        async def download_one(session,
-                               url: str,
-                               page_path: Path) -> Awaitable:
+        async def download_one(session, url: str, page_path: Path) -> Awaitable:
             try:
                 async with await session.get(url) as resp:
                     data = await resp.read()
@@ -116,16 +117,16 @@ class Chapter:
                         await out_file.write(data)
                         tqdm.write(f'saved -> {page_path}')
             except (ServerDisconnectedError, ClientPayloadError, ClientConnectorError) as e:
-                tqdm.write(f'{ERROR_PREFIX}chapter {self.ch_num} - {repr(e)}')
-                # just try again
+                tqdm.write(f'{ERROR_PREFIX}chapter {self.ch_num}\n{repr(e)}')
+                # just wait once second and try again
                 asyncio.sleep(1)
-                return download_one(session, url, page_path)
+                return await download_one(session, url, page_path)
 
         async def download_all(session, urls: str) -> Awaitable:
             tasks = []
             for i, url in enumerate(urls):
-                page_path = os.path.join(
-                    self.ch_path, f'{i+1}.{url.split(".")[-1]}')
+                page_name = f'{i+1}{url.split(".")[-1]}'
+                page_path = self.ch_path / page_name
                 tasks.append(download_one(session, url, page_path))
             return [await task for task in tqdm(asyncio.as_completed(tasks),
                                                 total=len(tasks),

@@ -3,9 +3,16 @@
 import os
 import shutil
 from distutils.dir_util import copy_tree
-from typing import Optional, Union, Dict, List, Tuple, Iterator, Awaitable
-from pathlib import Path
 from tqdm import tqdm
+from typing import (Optional,
+                    Union,
+                    Dict,
+                    List,
+                    Tuple,
+                    Iterator,
+                    Awaitable,
+                    Set)
+from pathlib import Path
 
 from .config import mangodl_config
 from .helpers import safe_mkdir
@@ -36,10 +43,10 @@ class FileSys:
 
     Attributes
     ----------
-    base_path : str
+    base_path : Path
         Absolute path to base directory for this manga. This is inside the 
         root directory specified by the user and stored as the global `ROOT_DIR`.
-    raw_path : str
+    raw_path : Path
         Folder within `base_path` to contain raw chapters.
 
     Methods
@@ -52,10 +59,10 @@ class FileSys:
 
     def __init__(self, manga_title: str):
         self.manga_title = manga_title
-        self.base_path = os.path.join(ROOT_DIR, self.manga_title)
-        self.raw_path = os.path.join(self.base_path, 'raw')
+        self.base_path = Path(ROOT_DIR) / self.manga_title
+        self.raw_path = self.base_path / 'raw'  # where we download the raw images
 
-    def setup_folders(self):
+    def setup_folders(self) -> None:
         safe_mkdir(self.base_path)
         safe_mkdir(self.raw_path)
 
@@ -78,9 +85,9 @@ class FileSys:
         logger.info('(っ˘ڡ˘ς) preparing to compile into volumes...')
 
         # make a new folder to store compiled volumes
-        vols_path = os.path.join(self.base_path, self.manga_title)
+        vols_path = self.base_path / self.manga_title
         safe_mkdir(vols_path)
-        #
+
         # copy raw chapters
         for ch in tqdm(downloaded,
                        total=len(downloaded),
@@ -90,10 +97,9 @@ class FileSys:
                        leave=False):
             if ch.ch_num == '_':
                 # has no volume number
-                new_ch_path = os.path.join(vols_path, ch.ch_title)
+                new_ch_path = vols_path / ch.ch_title
             else:
-                new_ch_path = os.path.join(
-                    vols_path, f'{self.manga_title}, Vol. {ch.vol_num}', f'{ch.ch_num}')
+                new_ch_path = vols_path / f'{self.manga_title}, Vol. {ch.vol_num}' / f'{ch.ch_num}'
             copy_tree(ch.ch_path, new_ch_path)
             tqdm.write(f'copied {ch.ch_path} -> {new_ch_path}')
 
@@ -104,21 +110,21 @@ class FileSys:
                             ncols=80,
                             leave=False):
 
-            self.to_cbz(raw_vol.path, vols_path)
-            #
+            self.to_cbz(Path(raw_vol.path), vols_path)
+
             # delete the non-archived folder
             shutil.rmtree(raw_vol.path)
 
     @ staticmethod
     def to_cbz(dir_to_zip: Path, destination: Path) -> None:
         """
-        Creates .cbz file.
+        Creates .cbz file. Both arguments must be pathlib.Path objects.
 
         Parameters
         ----------
-        dir_to_zip : str
+        dir_to_zip : Path
             Absolute path to folder which we want to zip.
-        destination : str
+        destination : Path
             Where to store the new archive.
 
         Returns
@@ -126,15 +132,15 @@ class FileSys:
         None
         """
         os.chdir(dir_to_zip)
-        archive_name = os.path.split(dir_to_zip)[-1]
-        archive_path = os.path.join(destination, archive_name)
-        shutil.make_archive(base_name=archive_path, format='zip')
-        tqdm.write(f'created .zip archive -> {archive_path}')
+        archive_name = dir_to_zip.stem
+        archive_path = destination / archive_name
+        new_vol_path = shutil.make_archive(base_name=archive_path, format='zip')
+        new_vol_path = Path(new_vol_path)  # convert to pathlib.Path object
+        tqdm.write(f'created archive {new_vol_path} <- {archive_name}')
 
-        new_volume_path = os.path.join(destination, f'{archive_name}.zip')
-        base_name = os.path.splitext(new_volume_path)[0]
-        final_name = base_name + '.cbz'
-        os.rename(new_volume_path, final_name)
+        # change ext to .cbz
+        with_cbz_ext = new_vol_path.with_suffix('.cbz')
+        os.rename(new_vol_path, with_cbz_ext)
 
-        tqdm.write(f'renamed {new_volume_path} -> {final_name}')
+        tqdm.write(f'renamed {new_vol_path} -> {with_cbz_ext}')
         tqdm.write(f'>>>>>>( ^_^）o自  {archive_name} compiled  自o（^_^ )<<<<<<')

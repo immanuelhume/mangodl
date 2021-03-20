@@ -5,8 +5,14 @@ import sys
 import time
 import math
 import re
-from typing import (Optional, Union, Dict, List,
-                    Tuple, Iterator, Awaitable)
+from typing import (Optional,
+                    Union,
+                    Dict,
+                    List,
+                    Tuple,
+                    Iterator,
+                    Awaitable,
+                    Set)
 from pathlib import Path
 
 import requests
@@ -14,7 +20,6 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from requests.exceptions import RequestException
 from urllib3.exceptions import MaxRetryError
-from itertools import zip_longest
 import asyncio
 from aiohttp import ClientSession
 
@@ -25,7 +30,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_json_data(url: str, time_out: int = 10, max_tries: int = 10) -> Dict:
+def mount_retries(session, domain, max_retries: int = 5, backoff: int = 1) -> requests.Session:
+    """Adds auto-retry to a session instance."""
+    retry = Retry(total=max_retries,
+                  status_forcelist=[429, 500, 502, 503, 504],
+                  method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
+                  backoff_factor=backoff)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount(domain, adapter)
+    return session
+
+
+def get_api_data(url: str, timeout: int = 10, max_tries: int = 1, backoff: int = 1) -> Dict:
     """
     Sends a GET request to the API url. Expects a JSON response, and returns
     the 'data' section of JSON string as a dict.
@@ -44,87 +60,14 @@ def get_json_data(url: str, time_out: int = 10, max_tries: int = 10) -> Dict:
     dict
         Dict representation of 'data' section in the JSON string.
     """
-    # retry = Retry(total=max_tries,
-    #               status_forcelist=[429, 500, 502, 503, 504],
-    #               method_whitelist=["HEAD", "GET", "OPTIONS"],
-    #               backoff_factor=1)
-    # adapter = HTTPAdapter(max_retries=retry)
     with requests.Session() as s:
-        s = retry_session(s, API_BASE, max_tries)
-        #s.mount(API_BASE, adapter)
+        s = mount_retries(s, API_BASE)
         try:
-            resp = s.get(url, timeout=time_out)
-            return resp.json()['data']
-        except (MaxRetryError, RequestException) as e:
-            logger.error(e, exc_info=True)
+            r = s.get(url, timeout=timeout)
+            return r.json()['data']
+        except (MaxRetryError, RequestException):
+            print('looks like mangadex\'s API is unavailable now ಠ_ಠ')
             sys.exit()
-
-
-def retry_session(session, domain: str, max_tries: int = 10, backoff: int = 1):
-    """Mounts adapter to a session, configuring retries."""
-    retry = Retry(total=max_tries,
-                  status_forcelist=[429, 500, 502, 503, 504],
-                  method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
-                  backoff_factor=backoff)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount(domain, adapter)
-    return session
-
-
-def chunk(lst: List, n: int) -> List:
-    """
-    Performs greedy chunking. Divides a list into chunks of n items. The last
-    chunk will have at least n items.
-    """
-    chunked = []
-    q = len(lst) // n
-    for i in range(q - 1):
-        chunked.append(lst[i * n:i * n + n])
-    chunked.append(lst[(q - 1) * n:])
-    return chunked
-
-
-def safe_mkdir(p: Path) -> None:
-    """Creates directory and handles FileExistsError."""
-    try:
-        os.mkdir(p)
-    except FileExistsError:
-        pass
-
-
-def safe_to_int(j):
-    """
-    Tries converting the argument to int. If that fails, tries converting to float.
-    And if that fails too, return the argument as is.
-    """
-    try:
-        i = float(j)
-    except ValueError:
-        return j
-    else:
-        return int(i) if int(i) == i else i
-
-
-def horizontal_rule(char: str = '=', length: int = 36, new_line=1) -> None:
-    """
-    Draws a horizontal line in stdout.
-
-    Parameters
-    ----------
-    char : str
-        Character to use for the rule.
-    length : int, default 36
-        Number of characters in rule.
-    new_line : int, default 1
-        How many empty lines to print above the actual rule.
-
-    Returns
-    -------
-    None
-    """
-    for _ in range(new_line):
-        print()
-    print(f'{char*length}')
 
 
 # recipe from https://gist.github.com/pquentin/5d8f5408cdad73e589d85ba509091741
@@ -190,6 +133,32 @@ async def gather_with_semaphore(n: int, *tasks) -> Awaitable:
     return await asyncio.gather(*(sem_task(task) for task in tasks))
 
 
+def chunk(lst: List, n: int) -> List:
+    """
+    Divides a list into chunks of n items. The last chunk will 
+    have at least n items.
+    """
+    chunked = []
+    q = len(lst) // n
+    for i in range(q - 1):
+        chunked.append(lst[i * n:i * n + n])
+    chunked.append(lst[(q - 1) * n:])
+    return chunked
+
+
+def safe_to_int(j) -> Union[str, int, float]:
+    """
+    Tries converting the argument to int. If that fails, tries converting to float.
+    And if that fails too, return the original argument.
+    """
+    try:
+        i = float(j)
+    except ValueError:
+        return j
+    else:
+        return int(i) if int(i) == i else i
+
+
 def find_int_between(c_lst) -> List[int]:
     """Parses a list of numbers and finds all missing integers."""
     missing = []
@@ -202,18 +171,31 @@ def find_int_between(c_lst) -> List[int]:
         except IndexError:
             # reached the last number
             pass
-
     return missing
+
+
+def extract_nums(lst: List) -> Tuple:
+    """
+    Separates numbers (float/int) in a list from 
+    other types.
+    """
+    nums = []
+    strs = []
+    for _ in lst:
+        if isinstance(_, (int, float)):
+            nums.append(_)
+        else:
+            strs.append(_)
+    return nums, strs
 
 
 def parse_range_input(astr: str) -> List[str]:
     """
     Uses regex to parse strings like this:
 
-    >>> parse_range_input('1-20, 25, 31-40')
-    ['1-20', '25', '31-40']
+    parse_range_input('1-20, 25, 31-40')
+    >>>['1-20', '25', '31-40']
     """
-
     p = re.compile(r'\d+\.*\d*\s*-?\s*\d*\.*\d*')
     m = p.findall(astr)
     m_ = [re.sub(r'\s+', '', _) for _ in m]  # strip all whitespace
@@ -222,8 +204,8 @@ def parse_range_input(astr: str) -> List[str]:
 
 def prompt_for_int(ceil: int, msg: str) -> int:
     """
-    Prompts for user input and only accepts integers within
-    a given range.
+    Prompts for user input and only accepts integers 
+    below a given target.
     """
     r = input(msg)
     try:
@@ -245,47 +227,74 @@ class _Getch:
 
     def __init__(self):
         try:
-            self.impl = _GetchWindows()
+            self.impl = self._GetchWindows()
         except ImportError:
-            self.impl = _GetchUnix()
+            self.impl = self._GetchUnix()
 
     def __call__(self): return self.impl()
 
+    class _GetchUnix:
+        def __init__(self):
+            import tty
+            import sys
 
-class _GetchUnix:
-    def __init__(self):
-        import tty
-        import sys
+        def __call__(self):
+            import sys
+            import tty
+            import termios
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(sys.stdin.fileno())
+                ch = sys.stdin.read(1)
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+            return ch
 
-    def __call__(self):
-        import sys
-        import tty
-        import termios
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
+    class _GetchWindows:
 
+        def __init__(self):
+            import msvcrt
 
-def sep_num_and_str(lst: List) -> Tuple:
-    nums = []
-    strs = []
-    for _ in lst:
-        if isinstance(_, (int, float)):
-            nums.append(_)
-        else:
-            strs.append(_)
-    return nums, strs
+        def __call__(self):
+            import msvcrt
+            return msvcrt.getch()
 
 
-class _GetchWindows:
-    def __init__(self):
-        import msvcrt
+def safe_mkdir(p: Path) -> None:
+    """Creates directory and handles FileExistsError."""
+    try:
+        os.mkdir(p)
+    except FileExistsError:
+        pass
 
-    def __call__(self):
-        import msvcrt
-        return msvcrt.getch()
+
+def horizontal_rule(char: str = '=', length: int = 36, new_line=1) -> None:
+    """
+    Draws a horizontal line in stdout.
+
+    Parameters
+    ----------
+    char : str
+        Character to use for the rule.
+    length : int, default 36
+        Number of characters in rule.
+    new_line : int, default 1
+        How many empty lines to print above the actual rule.
+
+    Returns
+    -------
+    None
+    """
+    for _ in range(new_line):
+        print()
+    print(f'{char*length}')
+
+
+def say_goodbye(m: str = None) -> None:
+    """Prints a goodbye message and exits."""
+    if m:
+        print(m)
+    else:
+        print('bye bye ~(˘▾˘~)')
+    sys.exit()
