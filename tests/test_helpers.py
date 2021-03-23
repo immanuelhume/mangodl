@@ -41,12 +41,12 @@ def test_safe_to_int_given_int():
     # positive integer
     i = 1
     res = safe_to_int(i)
-    assert type(res) == int
+    assert isinstance(res, int)
     assert res == 1
     # negative integer
     i_ = -1
     res = safe_to_int(i_)
-    assert type(res) == int
+    assert isinstance(res, int)
     assert res == -1
 
 
@@ -54,22 +54,22 @@ def test_safe_to_int_given_float():
     # positive float
     i = 0.5
     res = safe_to_int(i)
-    assert type(res) == float
+    assert isinstance(res, float)
     assert res == 0.5
     # negative float
     i_ = -0.5
     res = safe_to_int(i_)
-    assert type(res) == float
+    assert isinstance(res, float)
     assert res == -0.5
     # positive float 'integer'
     j = 1.0
     res = safe_to_int(j)
-    assert type(res) == int
+    assert isinstance(res, int)
     assert res == 1
     # negative float 'integer'
     j_ = -1.0
     res = safe_to_int(j_)
-    assert type(res) == int
+    assert isinstance(res, int)
     assert res == -1
 
 
