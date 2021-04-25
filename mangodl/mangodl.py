@@ -3,25 +3,22 @@
 # BUG there are still random network errors unhandled
 # TODO more automated tests
 # TODO add a timer?
-# TODO encrypt login info?
 # TODO options for file format?
 # TODO automatically search another site
-# TODO add more emojis!!!
+# TODO add more emojis!!! - and refactor them to another file
 
-from .mangodl_logging import mangodl_logging
-from .cli import ARGS
-
-from .manga import Manga
-from .search import get_manga_id
-from .login import login
-from .filesys import FileSys
-from .helpers import (horizontal_rule,
-                      _Getch,
-                      say_goodbye)
-
-import sys
-import os
 import logging
+import os
+import sys
+
+from .cli import ARGS
+from .filesys import FileSys
+from .helpers import _Getch, horizontal_rule, say_goodbye
+from .login import login
+from .manga import Manga
+from .mangodl_logging import mangodl_logging
+from .search import get_manga_id
+
 logger = logging.getLogger(__name__)
 
 getch = _Getch()

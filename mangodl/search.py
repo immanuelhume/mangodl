@@ -1,35 +1,26 @@
 """search.py helps handle searching operations."""
 
-import requests
-from requests.exceptions import RequestException
-from urllib3.exceptions import MaxRetryError
-from bs4 import BeautifulSoup as bs
-import lxml
+import logging
 import pickle
 import sys
-from typing import (Optional,
-                    Union,
-                    Dict,
-                    List,
-                    Tuple,
-                    Iterator,
-                    Awaitable,
-                    Set)
 from pathlib import Path
+from typing import Optional
+
+import requests
+from bs4 import BeautifulSoup as bs
+from requests.exceptions import RequestException
+from urllib3.exceptions import MaxRetryError
 
 from .config import mangodl_config
-from .helpers import (horizontal_rule,
-                      prompt_for_int,
-                      mount_retries)
+from .helpers import horizontal_rule, mount_retries, prompt_for_int
 
-import logging
 logger = logging.getLogger(__name__)
 
 # get stuff from config file
 SEARCH_URL: str = mangodl_config.get_search_url()
 
 
-def get_manga_id(manga_title: str, cookie_file: Path) -> Optional[str]:
+def get_manga_id(manga_title: str, cookie_file: 'Path') -> Optional[str]:
     """
     Searches mangadex for a manga, and tries to find the manga's id. Will 
     display all results and prompt user for a choice.
