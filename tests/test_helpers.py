@@ -1,5 +1,6 @@
 import pytest
-from mangodl.helpers import chunk, safe_to_int, find_int_between, parse_range_input
+from mangodl.helpers import (chunk, find_int_between, parse_range_input,
+                             safe_to_int)
 
 
 @pytest.fixture
